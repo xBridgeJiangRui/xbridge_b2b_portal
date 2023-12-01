@@ -1,0 +1,52 @@
+{
+	"info": {
+		"_postman_id": "b35fa08d-e663-4cc2-bd79-66bf9722937d",
+		"name": "Get B2B Summary",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "http://20.212.51.33/rest_b2b/index.php/get_b2b_summary_info",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "refno",
+							"value": "SSQDN23020358",
+							"type": "text"
+						},
+						{
+							"key": "type",
+							"value": "PO",
+							"type": "text"
+						},
+						{
+							"key": "customer_guid",
+							"value": "610BB0EA76AE11EDB37C72B64FC54D79",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://20.212.51.33/rest_b2b/index.php/get_b2b_summary_info",
+					"protocol": "http",
+					"host": [
+						"20",
+						"212",
+						"51",
+						"33"
+					],
+					"path": [
+						"rest_b2b",
+						"index.php",
+						"get_b2b_summary_info"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
