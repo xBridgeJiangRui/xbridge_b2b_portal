@@ -1395,6 +1395,22 @@ LIMIT 5 ");
                   if (in_array('VSUP', $_SESSION['module_code'])) {
                   ?>
                     <li class="treeview">
+                      <a href="<?php echo site_url('Troubleshoot_grn') ?>?customer_guid=<?php echo $_SESSION['customer_guid'] ?>">
+                        <i class="fa fa-truck"></i>
+                        <span>Troubleshoot GRN</span>
+                        <span class="pull-right-container">
+                          <!-- <i class="fa fa-angle-left pull-right"></i> -->
+                        </span>
+                      </a>
+                    </li>
+                  <?php
+                  }
+                  ?>
+
+                  <?php
+                  if (in_array('VSUP', $_SESSION['module_code'])) {
+                  ?>
+                    <li class="treeview">
                       <a href="<?php echo site_url('Troubleshoot_po/troubleshoot_report') ?>">
                         <i class="fa fa-truck"></i>
                         <span>Troubleshoot Report</span>
