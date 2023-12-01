@@ -1,3 +1,14 @@
+<style>
+/* Adjust the z-index values as needed */
+.popover {
+  z-index: 2000; /* Set a higher z-index value for the Summernote popover */
+}
+
+#chat_box {
+  z-index: 1200; /* Set a lower z-index value for the chat_box container */
+}
+</style>
+
 <footer class="main-footer">
     <div class="pull-right hidden-xs">
       Policy:&nbsp;<a href="https://b2b.xbridge.my/admin_files/Privacy%20Policy%20(ENGLISH).pdf" target="_blank">(EN)</a> <a href="https://b2b.xbridge.my/admin_files/Privacy%20Policy%20(BM).pdf" target="_blank">(BM)</a>&nbsp;<span data-toggle="modal" data-target="#contactus"><b style="cursor:pointer">Contact Us</b></span>  &nbsp<img src="<?php echo base_url('asset/dist/img/rexbridge.JPG');?>" class="img-circle" alt="User Image" style="height: 32px">
