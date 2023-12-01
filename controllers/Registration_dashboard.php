@@ -297,5 +297,81 @@ class Registration_dashboard extends CI_Controller
     echo json_encode($data);
     
   }
+
+  public function Registration_Report()
+  {
+      // Check if the user is logged in and the session is valid
+      if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login()) 
+      {
+          // Fetch data from the database
+          $data = array(
+              'acc' => $this->db->query("SELECT * FROM acc WHERE isactive = 1 ORDER BY acc_name ASC"),
+              'set_supplier' => $this->db->query("SELECT * FROM set_supplier WHERE isactive IN (0, 1) ORDER BY supplier_name ASC")
+          );
+
+          // Load views
+          $this->load->view('header');
+          $this->load->view('register/dashboard_registration_report', $data);
+          $this->load->view('footer');
+      } 
+      else 
+      {
+          // Redirect with a session message if the session is not valid
+          $this->session->set_flashdata('message', 'Session Expired! Please relogin');
+          redirect('#'); // Replace '#' with the URL you want to redirect to
+      }
+  }
+
+  public function registration_table()
+  { 
+      // Get the supplier_guid parameter from the POST request
+      $supplier_guid = $this->input->post('supplier_guid');
+
+      // Construct the main SQL query to fetch data
+      $sql = "SELECT 
+          a.acc_name,
+          ss.supplier_name,
+          rn.invoice_date
+      FROM 
+          lite_b2b.acc AS a
+          INNER JOIN lite_b2b.register_new AS rn
+          ON a.acc_guid = rn.customer_guid
+          INNER JOIN lite_b2b.set_supplier AS ss
+          ON rn.supplier_guid = ss.supplier_guid";
+
+      // Append a WHERE clause to filter data if supplier_guid is provided
+      if (!empty($supplier_guid)) {
+          $sql .= " WHERE rn.supplier_guid = ?";
+      }
+
+      // Prepare the final SQL query
+      $query = $sql;
+      
+      // Bind supplier_guid as a parameter if it's provided to prevent SQL injection
+      if (!empty($supplier_guid)) {
+          $result = $this->db->query($query, array($supplier_guid));
+      } else {
+          $result = $this->db->query($query);
+      }
+
+      // Prepare data for DataTables
+      $data = array();
+      foreach ($result->result() as $row) {
+          // Extract data from the result and format it for the DataTable
+          $nestedData['acc_name'] = $row->acc_name;
+          $nestedData['supplier_name'] = $row->supplier_name;
+          $nestedData['invoice_date'] = $row->invoice_date;
+
+          $data[] = $nestedData;
+      }
+
+      // Prepare the JSON response for DataTables
+      $output = array(
+          "data" => $data
+      );
+
+      // Send the JSON response to the DataTable
+      echo json_encode($output);
+  }
  
 }
