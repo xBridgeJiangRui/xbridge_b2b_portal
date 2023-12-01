@@ -715,6 +715,34 @@
                 return false;
         });
 
+        $('#userid').on('input paste', function() {
+    var $this = $(this);
+
+    // Delay execution by 100 milliseconds to capture pasted content
+    setTimeout(function() {
+        var userid = $this.val();
+
+        $.ajax({
+            url: "<?php echo site_url('Module_setup_new/check_userid') ?>",
+            method: "POST",
+            data: { userid: userid },
+            success: function(response) {
+                if (response.status === 'exists') {
+                    alert('User ID already exists!');
+                    // Additional actions if needed when the user ID exists
+                } else {
+                    // Additional actions if needed when the user ID is available
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX error:', error);
+                alert('Oops! Something went wrong. Please contact handsome chee ming');
+                // Handle any AJAX errors
+            }
+        });
+    }, 100); // Adjust this delay (in milliseconds) as needed
+});
+
         $(document).on('click', '#user_module_all', function() {
             // alert();
             $("#user_module_option option").prop('selected', true);
