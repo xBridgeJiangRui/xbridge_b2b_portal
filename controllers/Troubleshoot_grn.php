@@ -258,9 +258,9 @@ if (!defined('BASEPATH'))
 
                 $replace_var = $this->db->query("SELECT REPLACE(REPLACE(REPLACE(filename_format, 'type', '$type'), 'code', REPLACE('$code','/','+-+')), 'refno' , '$refno') AS query FROM menu where module_link = 'panda_gr'")->row('query');
 
-                $virtual_path = $this->db->query("SELECT file_path FROM acc WHERE acc_guid = '$customer_guid' ")->row('file_path');
+                $virtual_path = $this->db->query("SELECT CONCAT(file_host,file_path) AS full_path FROM lite_b2b.acc WHERE acc_guid = '$customer_guid' ")->row('full_path');
 
-                $filename = base_url($virtual_path.'/'.$replace_var.'.pdf');
+                $filename = $virtual_path.'/'.$replace_var.'.pdf';
             
                 $nestedData['RefNo'] = $row->RefNo;
                 $nestedData['grda_refno'] = $row->GRDA;
