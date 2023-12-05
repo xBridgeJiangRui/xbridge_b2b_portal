@@ -158,6 +158,8 @@
                             <th>Code</th>
                             <th>Name</th>
                             <th>GR Date</th>
+                            <th>Inv No</th>
+                            <th>E-Inv No</th>
                             <th>Amount</th>
                             <th>Tax</th>
                             <th>Total Include Tax</th>
@@ -269,6 +271,8 @@
                 {"data":"Code"},
                 {"data":"Name"},
                 {"data":"GRDate"},
+                {"data":"InvNo"},
+                {"data":"einvno"},
                 {"data":"Total"},
                 {"data":"gst_tax_sum"},
                 {"data":"total_include_tax"},

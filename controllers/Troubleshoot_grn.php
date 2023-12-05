@@ -98,11 +98,13 @@ if (!defined('BASEPATH'))
             3 => 'Code', 
             4 => 'Name', 
             5 => 'GRDate', 
-            6 => 'Total', 
-            7 => 'gst_tax_sum', 
-            8 => 'total_include_tax', 
-            9 => 'status', 
-            10=> 'RefNo'
+            6 => 'InvNo', 
+            7 => 'einvno', 
+            8 => 'Total', 
+            9 => 'gst_tax_sum', 
+            10 => 'total_include_tax', 
+            11 => 'status', 
+            12=> 'RefNo'
             
         );  
 
@@ -206,7 +208,7 @@ if (!defined('BASEPATH'))
             $period_code = "AND left(a.GRDate,7)  = '$period_code'";
         }//close else period_code
 
-        $sql = "SELECT a.RefNo, gd.RefNo AS GRDA, a.Location, a.Code, a.Name, a.GRDate, a.Total, a.gst_tax_sum, a.total_include_tax, CASE 
+        $sql = "SELECT a.RefNo, gd.RefNo AS GRDA, a.Location, a.Code, a.Name, a.GRDate, a.InvNo, einv.einvno, a.Total, a.gst_tax_sum, a.total_include_tax, CASE 
         WHEN a.status = '' THEN 'New' 
         ELSE a.status 
         END AS status
@@ -216,6 +218,9 @@ if (!defined('BASEPATH'))
         ON a.RefNo = gd.RefNo
         AND a.customer_guid = gd.customer_guid
         
+        LEFT JOIN b2b_summary.einv_main einv
+        ON a.RefNo = einv.refno
+        AND a.customer_guid = einv.customer_guid
         
         WHERE a.customer_guid = '$customer_guid'
         AND a.Code IN ($vendor_code)
@@ -268,6 +273,8 @@ if (!defined('BASEPATH'))
                 $nestedData['Code'] = $row->Code;
                 $nestedData['Name'] = $row->Name;
                 $nestedData['GRDate'] = $row->GRDate;
+                $nestedData['InvNo'] = $row->InvNo;
+                $nestedData['einvno'] = $row->einvno;
                 $nestedData['Total'] = $row->Total;
                 $nestedData['gst_tax_sum'] = $row->gst_tax_sum;
                 $nestedData['total_include_tax'] = $row->total_include_tax;
