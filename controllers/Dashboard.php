@@ -109,7 +109,47 @@ class dashboard extends CI_Controller
                 $row_supplier = $check_rows_supplier->num_rows();
             }
 
-            $check_announcement_acknowledgement = $this->db->query("SELECT * FROM (SELECT a.*, '0' AS need_docs, COUNT(c.announcement_guid) AS counting FROM lite_b2b.announcement AS a LEFT JOIN (SELECT * FROM lite_b2b.announcement_child WHERE user_guid = '" . $_SESSION['user_guid'] . "') AS b ON a.`announcement_guid` = b.`announcement_guid` LEFT JOIN (SELECT * FROM lite_b2b.announcement_child_supplier WHERE user_guid = '" . $_SESSION['user_guid'] . "') AS c ON a.`announcement_guid` = c.`announcement_guid` WHERE a.`customer_guid` = '" . $_SESSION['customer_guid'] . "' AND a.`acknowledgement` = '1' AND a.posted = '1' AND b.announcement_guid_c IS NULL GROUP BY a.announcement_guid UNION ALL SELECT * FROM (SELECT a.*, '1' AS need_docs, COUNT(b.announcement_guid) AS counting FROM lite_b2b.announcement AS a LEFT JOIN (SELECT * FROM lite_b2b.announcement_child_supplier WHERE user_guid = '" . $_SESSION['user_guid'] . "') AS b ON a.`announcement_guid` = b.`announcement_guid` WHERE a.`customer_guid` = '" . $_SESSION['customer_guid'] . "' AND a.`acknowledgement` = '1' AND a.posted = '1' AND a.`upload_docs` = '1' GROUP BY a.announcement_guid) aa ) aaa WHERE aaa.counting != '$row_supplier' AND aaa.announcement_guid IS NOT NULL GROUP BY aaa.announcement_guid ORDER BY aaa.`posted_at` ASC limit 10 ");
+            $check_announcement_acknowledgement = $this->db->query("SELECT *
+            FROM (
+                SELECT a.*, '0' AS need_docs, COUNT(c.announcement_guid) AS counting
+                FROM lite_b2b.announcement AS a
+                LEFT JOIN (
+                    SELECT * FROM lite_b2b.announcement_child
+                    WHERE user_guid = '".$_SESSION['user_guid']."'
+                ) AS b ON a.`announcement_guid` = b.`announcement_guid`
+                LEFT JOIN (
+                    SELECT * FROM lite_b2b.announcement_child_supplier
+                    WHERE user_guid = '".$_SESSION['user_guid']."'
+                ) AS c ON a.`announcement_guid` = c.`announcement_guid`
+                WHERE a.`customer_guid` = '".$_SESSION['customer_guid']."'
+                AND a.`acknowledgement` = '1'
+                AND a.posted = '1'
+                AND b.announcement_guid_c IS NULL
+                
+                AND (a.duedate >= CURDATE() OR a.duedate = '' OR a.duedate IS NULL )
+                
+                UNION ALL
+                
+                SELECT *
+                FROM (
+                    SELECT a.*, '1' AS need_docs, COUNT(b.announcement_guid) AS counting
+                    FROM lite_b2b.announcement AS a
+                    LEFT JOIN (
+                        SELECT * FROM lite_b2b.announcement_child_supplier
+                        WHERE user_guid = '".$_SESSION['user_guid']."'
+                    ) AS b ON a.`announcement_guid` = b.`announcement_guid`
+                    WHERE a.`customer_guid` = '".$_SESSION['customer_guid']."'
+                    AND a.`acknowledgement` = '1'
+                    AND a.posted = '1'
+                    AND a.`upload_docs` = '1'
+                    AND (a.duedate >= CURDATE() OR a.duedate = '' OR a.duedate IS NULL)
+                    GROUP BY a.announcement_guid
+                ) aa
+            ) aaa
+            WHERE aaa.counting != '$row_supplier' AND aaa.announcement_guid IS NOT NULL
+            GROUP BY aaa.announcement_guid
+            ORDER BY aaa.`posted_at` ASC
+            LIMIT 10");
 
             // if($user_guid = '7BA14C79BDDB11EBB0C4000D3AA2838A')
             // {   

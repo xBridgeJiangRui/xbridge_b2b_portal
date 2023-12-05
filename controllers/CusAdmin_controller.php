@@ -117,6 +117,7 @@ class CusAdmin_controller extends CI_Controller {
                 $data = array(
                 'title' => $this->input->post('title'),
                 'docdate' => $this->input->post('docdate'),
+                'duedate' => $this->input->post('selected_due_date'),
                 'content' => $content_get,
                 'acknowledgement' => $this->input->post('acknowledgement'),
                 'pdf_status' => $this->input->post('pdfstatus'),
