@@ -510,33 +510,68 @@ class Ticket extends CI_Controller
 
             $user_group = $_SESSION['user_group_name'];
 
+            if ( $user_group == 'SUPER_ADMIN') {
+
+                $ticket_hide = '1';
+
+                $data = array(
+
+                    'ticket_guid' => $ticket_guid,
+                    'ticket_number' => $ticket_number,
+                    'topic_guid' => $topic_guid,
+                    'acc_guid' => $acc_guid,
+                    'supplier_guid' => $supplier_guid,
+                    'sub_topic_guid' => $sub_topic_guid,
+                    'details' => $messages,
+                    'created_at' => $created_at,
+                    'created_by' => $_SESSION['user_guid'],
+                    'ticket_status' => 'New',
+                    'ticket_file' => implode(',', $filename),
+                    'ticket_path' => implode(',', $paths),
+                    'assigned' => $assigned_guid,
+                    'hide' => $ticket_hide,
+    
+                );
+
+                $this->db->insert('ticket', $data);
+
+            } else {
+
+                $ticket_hide = '0';
+
+                $data = array(
+
+                    'ticket_guid' => $ticket_guid,
+                    'ticket_number' => $ticket_number,
+                    'topic_guid' => $topic_guid,
+                    'acc_guid' => $acc_guid,
+                    'supplier_guid' => $supplier_guid,
+                    'sub_topic_guid' => $sub_topic_guid,
+                    'details' => $messages,
+                    'created_at' => $created_at,
+                    'created_by' => $_SESSION['user_guid'],
+                    'ticket_status' => 'New',
+                    'ticket_file' => implode(',', $filename),
+                    'ticket_path' => implode(',', $paths),
+                    'hide' => $ticket_hide,
+    
+                );
+
+                $this->db->insert('ticket_child', $data);
+
+            }
+
             if ( $user_group== 'SUPER_ADMIN') {
                 $messages_type = 'A';
             } else {
                 $messages_type = 'U';
             }
             // print_r($filename);die;
-            $data = array(
-
-                'ticket_guid' => $ticket_guid,
-                'ticket_number' => $ticket_number,
-                'topic_guid' => $topic_guid,
-                'acc_guid' => $acc_guid,
-                'supplier_guid' => $supplier_guid,
-                'sub_topic_guid' => $sub_topic_guid,
-                'details' => $messages,
-                'created_at' => $created_at,
-                'created_by' => $_SESSION['user_guid'],
-                'ticket_status' => 'New',
-                'ticket_file' => implode(',', $filename),
-                'ticket_path' => implode(',', $paths),
-                'assigned' => $assigned_guid,
-
-            );
+            
 
            //print_r($data);die;
 
-            $this->db->insert('ticket', $data);
+           //$this->db->insert('ticket', $data);
 
              $ticket_c_guid = $this->db->query("SELECT REPLACE(UPPER(UUID()),'-','') AS guid")->row('guid');
 
