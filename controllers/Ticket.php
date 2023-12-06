@@ -557,7 +557,7 @@ class Ticket extends CI_Controller
     
                 );
 
-                $this->db->insert('ticket_child', $data);
+                $this->db->insert('ticket', $data);
 
             }
 
