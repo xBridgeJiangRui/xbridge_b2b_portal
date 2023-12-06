@@ -2654,4 +2654,26 @@ class Module_setup_new extends CI_Controller
             echo json_encode($data);   
         }
     }
+
+    public function check_userid()
+{
+    $user_id = $this->input->post('userid');
+
+    $query = $this->db->get_where('set_user', array('user_id' => $user_id));
+    $result = $query->row();
+
+    $data = array(); // Prepare an array for the response data
+
+    if ($result) {
+        $data['status'] = 'exists';
+    } else {
+        $data['status'] = 'available';
+    }
+
+    // Return the JSON response
+    header('Content-Type: application/json'); // Set header for JSON response
+    echo json_encode($data);
+}
+
+
 }

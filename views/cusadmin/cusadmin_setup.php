@@ -63,7 +63,7 @@
                         <th>Published Date</th>
                         <th>Published</th>
                         <th>Doc Date</th>
-                        
+                        <th>Due Date</th>
 
                     </tr>
                     </thead>
@@ -76,6 +76,7 @@
                         edit_detail="#edit_detail"  
                         announcement_guid="<?php echo $row->announcement_guid ?>"
                         docdate="<?php echo $row->docdate ?>"
+                        duedate="<?php echo $row->duedate ?>"
                         title="<?php echo $row->title ?>"
                         content="<?php echo str_replace('"', "&quot;", "$row->content")   ?>"
                         acknowledgement="<?php echo $row->acknowledgement ?>"
@@ -120,7 +121,7 @@
                         <td><input type="checkbox" value="<?php echo $row->posted ?>" <?php if($row->posted == '1') {  echo 'checked'; }  ?> disabled > 
                         </td>
                         <td><?php echo $row->docdate ?></td>
-                        
+                        <td><?php echo $row->duedate ?></td>
                       </tr>
                     <?php } ?>
                     </tbody>
@@ -313,6 +314,7 @@ $(document).ready(function() {
 
     var announcement_guid = $(this).attr('announcement_guid');
     var docdate = $(this).attr('docdate');
+    var duedate = $(this).attr('duedate');
     var title = $(this).attr('title');
     var content = $(this).attr('content');
     var acknowledgement = $(this).attr('acknowledgement');
@@ -341,6 +343,16 @@ $(document).ready(function() {
 
     methodd += '<div class="col-md-6"><label>Button Name</label><input type="text" class="form-control input-sm" id="edit_button1" value="'+editbutton1+'" /></div>';
 
+    methodd += '<div class="col-sm-6"> <label>Due Date</label> <div class="input-group"> <div class="input-group-addon"> <i class="fa fa-calendar"></i> </div> <input name="due_date" id="due_date" type="text" class="datepicker form-control input-sm" value="'+duedate+'"  autocomplete="off" > </div> </div>';
+    
+    methodd += '<div class="col-md-2"><br>';
+
+    methodd += '<a class="btn btn-danger" onclick="expiry_clear()">Clear</a>';
+
+    methodd += '</div>';
+
+    methodd += '<div class="col-md-12"></div>'; // Start a new row for checkboxes
+    
     methodd += '<div class="form-group"><div class="col-md-6 checkbox"><label><input type="checkbox" id="edit_acknowledgement" value="1"/>Acknowledgement</label></div></div>';
 
     methodd += '<div class="form-group"><div class="col-md-6 checkbox"><label><input type="checkbox" id="edit_pdfstatus" value="1"/>PDF</label></div></div>';
@@ -425,6 +437,13 @@ $(document).ready(function() {
     var mode = 'detail';
     var is_upload_doc = '';
     var upload_link = '';
+    var selectedDueDate = $('#due_date').val(); // Get the selected due date
+    var currentDate = new Date(); // Get current date
+    var dueDate = new Date(selectedDueDate); // Convert due date string to Date object
+
+    // Calculate difference in days
+    var timeDifference = dueDate.getTime() - currentDate.getTime();
+    var differenceInDays = Math.ceil(timeDifference / (1000 * 3600 * 24));
     
     if((announcement_guid == '') || (announcement_guid == null))
     {
@@ -520,7 +539,7 @@ $(document).ready(function() {
     $.ajax({
           url:"<?php echo site_url('CusAdmin_controller/update');?>",
           method:"POST",
-          data:{announcement_guid:announcement_guid,docdate:docdate,title:title,content:content,acknowledgement:acknowledgement,pdfstatus:pdfstatus,mandatorystatus:mandatorystatus,agreementstatus:agreementstatus,header:header,button1:button1,mode:mode,is_upload_doc:is_upload_doc,upload_link:upload_link},
+          data:{announcement_guid:announcement_guid,docdate:docdate,title:title,content:content,acknowledgement:acknowledgement,pdfstatus:pdfstatus,mandatorystatus:mandatorystatus,agreementstatus:agreementstatus,header:header,button1:button1,mode:mode,is_upload_doc:is_upload_doc,upload_link:upload_link,selected_due_date: selectedDueDate},
           beforeSend:function(){
             $('.btn').button('loading');
           },

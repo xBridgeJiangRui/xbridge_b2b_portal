@@ -2101,6 +2101,17 @@ LIMIT 5 ");
             <?php } ?>
 
             <li class="treeview">
+            <?php if ($_SESSION['user_group_name'] == "SUPER_ADMIN") { ?>
+              <li class="treeview">
+                <a href="<?php echo site_url('Registration_dashboard/Registration_Report') ?>">
+                  <i class="fa fa-circle-o"></i>
+                  <span>Registered List</span>
+                </a>
+              </li>
+            <?php } ?>
+            </li>
+
+            <li class="treeview">
               <a href="<?php echo site_url('Registration_new/register_admin') ?>">
                 <i class="fa fa-circle-o"></i>
 
