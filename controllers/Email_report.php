@@ -300,17 +300,18 @@ class Email_report extends CI_Controller
 		$valid_columns = array(
 			0=>'reset_guid',
             1=>'acc_name',
-            2=>'email_id',
-            3=>'is_reset',
-            4=>'reset_at',
-            5=>'viewed_at',
-            6=>'ip',
-            7=>'browser',
-            8=>'deleted',
-            9=>'updated_at',
-            10=>'updated_by',
-            11=>'created_at',
-            12=>'created_by',
+			2=>'supplier_name',
+            3=>'email_id',
+            4=>'is_reset',
+            5=>'reset_at',
+            6=>'viewed_at',
+            7=>'ip',
+            8=>'browser',
+            9=>'deleted',
+            10=>'updated_at',
+            11=>'updated_by',
+            12=>'created_at',
+            13=>'created_by',
 
 		);
 
@@ -361,7 +362,22 @@ class Email_report extends CI_Controller
 
 		$limit_query = " LIMIT " .$start. " , " .$length;
 		
-		$sql = "SELECT a.`reset_guid`, a.`user_guid`, a.`customer_guid`, b.`acc_name`, a.`email_id`, a.`is_reset`, a.`reset_at`, a.`viewed_at`, a.`created_by`, a.`created_at`, a.`updated_by`, a.`updated_at`, a.`ip`, a.`browser` , a.`deleted` FROM lite_b2b.reset_pass_list a LEFT JOIN lite_b2b.acc b ON a.customer_guid = b.acc_guid ";
+		$sql = "SELECT a.`reset_guid`, a.`user_guid`, a.`customer_guid`, b.`acc_name`, ss.`supplier_name`,
+		a.`email_id`, a.`is_reset`, a.`reset_at`, a.`viewed_at`, a.`created_by`, 
+		a.`created_at`, a.`updated_by`, a.`updated_at`, a.`ip`, a.`browser` , a.`deleted` 
+		
+		FROM lite_b2b.reset_pass_list a 
+		INNER JOIN lite_b2b.acc b 
+		ON a.customer_guid = b.acc_guid 
+		
+		LEFT JOIN lite_b2b.set_supplier_user_relationship AS ssur
+		ON a.user_guid = ssur.user_guid
+		AND a.customer_guid = ssur.customer_guid
+		
+		LEFT JOIN lite_b2b.set_supplier AS ss
+		ON ssur.supplier_guid = ss.supplier_guid
+		
+		GROUP BY a.reset_guid";
 
 		$query = "SELECT * FROM ( ".$sql." ) a ".$like_first_query.$like_second_query.$order_query.$limit_query;
 
@@ -388,6 +404,7 @@ class Email_report extends CI_Controller
 		{
 			$nestedData['reset_guid'] = $row->reset_guid;
             $nestedData['customer_guid'] = $row->customer_guid;
+			$nestedData['supplier_name'] = $row->supplier_name;
             $nestedData['user_guid'] = $row->user_guid;
             $nestedData['email_id'] = $row->email_id;
             $nestedData['is_reset'] = $row->is_reset;

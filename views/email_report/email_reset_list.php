@@ -26,6 +26,7 @@
               <tr>
                 <th>Action</th>
                 <th>Customer Name</th>
+                <th>Supplier Name</th>
                 <th>Email Address</th>
                 <th>Reset Status</th>
                 <th>Reset At</th>
@@ -64,7 +65,7 @@ $(document).ready(function() {
     'lengthMenu'  : [ [10, 25, 50, 999999], [10, 25, 50, 'ALL'] ],
     'searching'   : true,
     'ordering'    : true,
-    'order'       : [ [9 , 'DESC'] ],
+    'order'       : [ [10 , 'DESC'] ],
     'info'        : true,
     'autoWidth'   : false,
     "bPaginate": true, 
@@ -100,6 +101,7 @@ $(document).ready(function() {
        
               }},
               { "data" : "acc_name" },
+              { "data" : "supplier_name" },
               { "data" : "email_id" },
               { "data" : "is_reset" ,render:function( data, type, row ){
 
