@@ -22,6 +22,8 @@
                     <tr>
                         <th>Action</th>
                         <th>Subject</th>
+                        <th>Retailer</th>
+                        <th>Supplier name</th>
                         <th>Email Address</th>
                         <th>From Email Address</th>
                         <th>Send At</th>
@@ -55,7 +57,7 @@ $(document).ready(function() {
     'lengthMenu'  : [ [10, 25, 50, 999999], [10, 25, 50, 'ALL'] ],
     'searching'   : true,
     'ordering'    : true,
-    'order'       : [ [4 , 'DESC'] ],
+    'order'       : [ [6 , 'DESC'] ],
     'info'        : true,
     'autoWidth'   : false,
     "bPaginate": true, 
@@ -80,6 +82,8 @@ $(document).ready(function() {
        
               }},
              { "data": "subject" },
+             { "data": "acc_name" },
+             { "data": "supplier_name" },
              { "data": "email_id" },
              { "data": "from_email" },
              { "data": "updated_at" },

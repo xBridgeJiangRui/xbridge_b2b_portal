@@ -99,12 +99,14 @@ class Email_report extends CI_Controller
 		$valid_columns = array(
 			0=>'guid',
             1=>'subject',
-            2=>'email_id',
-            3=>'from_email',
-            4=>'updated_at',
-            5=>'module',
-            6=>'remark',
-            7=>'status',
+			2=>'acc_name',
+			3=>'supplier_name',
+            4=>'email_id',
+            5=>'from_email',
+            6=>'updated_at',
+            7=>'module',
+            8=>'remark',
+            9=>'status',
 	
 		);
 
@@ -155,7 +157,23 @@ class Email_report extends CI_Controller
 
 		$limit_query = " LIMIT " .$start. " , " .$length;
 		
-		$sql = "SELECT * FROM lite_b2b.email_send_content WHERE module = 'key_in' ";
+		$sql = "SELECT esc.guid, esc.subject, a.acc_name, ss.supplier_name, esc.email_id, 
+		esc.from_email ,esc.updated_at, esc.module, esc.remark, esc.status
+				
+		FROM lite_b2b.email_send_content AS esc
+		LEFT JOIN lite_b2b.set_supplier_user_relationship AS ssur
+		ON esc.customer_guid = ssur.customer_guid
+		AND esc.user_guid = ssur.user_guid
+				
+		LEFT JOIN lite_b2b.set_supplier AS ss
+		ON ssur.supplier_guid = ss.supplier_guid
+				
+		INNER JOIN lite_b2b.acc AS a
+		ON esc.customer_guid = a.acc_guid
+		
+		WHERE esc.module ='key_in'
+		
+		GROUP BY esc.guid";
 
 		$query = "SELECT * FROM ( ".$sql." ) a ".$like_first_query.$like_second_query.$order_query.$limit_query;
 
@@ -183,7 +201,8 @@ class Email_report extends CI_Controller
 			$nestedData['guid'] = $row->guid;
 			$nestedData['module'] = $row->module;
 			$nestedData['remark'] = $row->remark;
-			$nestedData['customer_guid'] = $row->customer_guid;
+			$nestedData['acc_name'] = $row->acc_name;
+			$nestedData['supplier_name'] = $row->supplier_name;
 			$nestedData['user_guid'] = $row->user_guid;
 			$nestedData['email_id'] = $row->email_id;
 			$nestedData['subject'] = $row->subject;
