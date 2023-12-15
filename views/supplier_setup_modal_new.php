@@ -190,7 +190,7 @@
                                 <div class="form-group"  id="div1">
                                 <label class="control-label col-md-3">Supplier Group</label> 
                                     <div class="col-md-9">
-                                      <select name="supplier_group" class="form-control" style="width: 100%;">
+                                      <select name="supplier_group" class="form-control select" style="width: 100%;">
                                     <?php
                                         foreach($set_supplier_group->result() as $row)
                                         {
@@ -366,6 +366,10 @@ $( document ).ready(function() {
                       $('#methodSupplierGroup').css('display' ,'none');
                       // alert(data.countdropdown);
                       $('#multipleSupplier').append(data.dropdown);
+
+                      // Add by cheeming to Find the Supplier Name dropdown in the newly added content and initialize Select2 for it
+                      $('#multipleSupplier').find('.supplier_name').last().select2();
+
                       $('#supplier_multiple_startup').val(data.countdropdown);
                       $('#add_supplier').css('display' ,'block');
                       $('.supplier_code').select2();
@@ -455,6 +459,10 @@ $( document ).ready(function() {
           $('#methodSupplierGroup').css('display' ,'none');
           // alert(data);
           $('#multipleSupplier').append(data);
+
+          // Add by cheeming to Find the Supplier Name dropdown in the newly added content and initialize Select2 for it
+          $('#multipleSupplier').find('.supplier_name').last().select2();
+          
           $('.supplier_code').select2();
           var total = parseInt(supplier_multiple_startup) + 1;
           $('#supplier_multiple_startup').val(total);
