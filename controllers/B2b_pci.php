@@ -16,12 +16,12 @@ class b2b_pci extends CI_Controller
         //load the department_model
         //$this->load->model('General_model');
         $this->load->model('Datatable_model');
-        $this->jasper_ip = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','jasper_invoice_ip','GDJIIP');
+        $this->jasper_ip = $this->file_config_b2b->file_path_name($this->session->userdata('customer_guid'),'web','general_doc','jasper_invoice_ip','GDJIIP');
     }
 
     public function index()
     {
-        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN')
+        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login())
         {   
             //print_r($_SESSION['from_other']); die;
             $setsession = array(
@@ -64,7 +64,7 @@ class b2b_pci extends CI_Controller
 
     public function pci_list()
     {
-        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN') {
+        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login()) {
             $check_loc = $_SESSION['pci_loc'];
             
             $hq_branch_code = $this->db->query("SELECT branch_code FROM acc_branch WHERE is_hq = '1'")->result();
@@ -174,7 +174,7 @@ class b2b_pci extends CI_Controller
             a.docdate,
             IF(a.status = '', 'NEW', a.status) AS status
             FROM
-            b2b_summary.promo_taxinv_info AS a FORCE INDEX (customer_guid)
+            b2b_summary.promo_taxinv_info AS a
             LEFT JOIN b2b_summary.promo_taxinv AS b
             ON a.taxinv_guid = b.taxinv_guid
             AND a.customer_guid = b.customer_guid
@@ -185,7 +185,6 @@ class b2b_pci extends CI_Controller
                 $doc_daterange_in
                 $ref_no_in
                 $period_code_in
-                LIMIT 10
             ) zzz
             ";
 
@@ -202,7 +201,7 @@ class b2b_pci extends CI_Controller
             JSON_UNQUOTE(JSON_EXTRACT(a.`pci_json_info`,'$.promo_taxinv[0].total_af_tax')) AS total_af_tax,
             IF(a.status = '', 'NEW', a.status) AS status
             FROM
-            b2b_summary.promo_taxinv_info AS a FORCE INDEX (customer_guid)
+            b2b_summary.promo_taxinv_info AS a
             LEFT JOIN b2b_summary.promo_taxinv AS b
             ON a.taxinv_guid = b.taxinv_guid
             AND a.customer_guid = b.customer_guid
@@ -212,8 +211,7 @@ class b2b_pci extends CI_Controller
                 $status_in 
                 $doc_daterange_in
                 $ref_no_in
-                $period_code_in
-                LIMIT 10"; 
+                $period_code_in"; 
             
             //AND b.loc_group in ($loc)  -- up to production need change this
 
@@ -222,7 +220,7 @@ class b2b_pci extends CI_Controller
             ) zzz ";
 
             $query = $this->Datatable_model->datatable_main($sql, $type, $doc);
-            //echo $this->db->last_query(); die;
+            // echo $this->db->last_query(); die;
             $fetch_data = $query->result();
             $data = array();
             if (count($fetch_data) > 0) {
@@ -277,8 +275,20 @@ class b2b_pci extends CI_Controller
             $refno = $_REQUEST['trans'];
             $loc = $_REQUEST['loc'];
             $customer_guid = $this->session->userdata('customer_guid');
+
+            $check_refno = $this->db->query("SELECT customer_guid,pci_use_inv_refno FROM lite_b2b.acc_settings WHERE pci_use_inv_refno = '1' AND customer_guid = '".$_SESSION['customer_guid']."'")->result_array();
+
+            if(count($check_refno) == 1)
+            {
+                $use_refno_val = 'inv_refno';
+            }
+            else
+            {
+                $use_refno_val = 'promo_refno';
+            }
+
             // bataras , Gmart , everrise
-            if( $customer_guid == '1F90F5EF90DF11EA818B000D3AA2CAA9' ||  $customer_guid == '907FAFE053F011EB8099063B6ABE2862' ||  $customer_guid == 'D361F8521E1211EAAD7CC8CBB8CC0C93')
+            if( $use_refno_val == 'inv_refno')
             {
                 $check_scode = $this->db->query("SELECT supplier_code from b2b_summary.promo_taxinv_info where inv_refno = '$refno' and customer_guid = '".$_SESSION['customer_guid']."'")->row('supplier_code');
             }
@@ -314,7 +324,7 @@ class b2b_pci extends CI_Controller
             
             if(!in_array('!PCISUPPMOV',$_SESSION['module_code']))
             {
-                if( $customer_guid == '1F90F5EF90DF11EA818B000D3AA2CAA9' ||  $customer_guid == '907FAFE053F011EB8099063B6ABE2862' ||  $customer_guid == 'D361F8521E1211EAAD7CC8CBB8CC0C93')
+                if( $use_refno_val == 'inv_refno')
                 {
                     $this->db->query("UPDATE b2b_summary.promo_taxinv_info SET status = 'viewed' where inv_refno = '$refno' and customer_guid = '".$_SESSION['customer_guid']."' AND status = ''");
                 }
@@ -357,13 +367,67 @@ class b2b_pci extends CI_Controller
     public function pci_report()
     {
         $refno = $_REQUEST['refno'];
-        $customer_guid = $_SESSION['customer_guid'];
+        $customer_guid = $this->session->userdata('customer_guid');
         $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
+        $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
+        $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
+
+        if($cloud_directory == null || $cloud_directory == ''){
+            $cloud_directory = '/media/b2b-pdf/data_conversion/';
+        }
+
+        if($fileserver_url == null || $fileserver_url == ''){
+            $fileserver_url = 'https://file.xbridge.my/';
+        }
+
+        $cloud_directory = $cloud_directory . $customer_guid . '/PCI/';
+
+        // check if pdf file already exist
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
+
+            $curl = curl_init();
+
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $fileserver_url. '/b2b-pdf/data_conversion/' . $customer_guid . '/PCI/' . $refno.'.pdf',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                    'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+                ),
+            ));
+                
+            $response = curl_exec($curl);
+
+            curl_close($curl); 
+
+            header('Content-type:application/pdf');
+            header('Content-Disposition: inline; filename='.$refno.'.pdf');
+
+            echo $response; die;
+        }
 
         $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_Promotion/promo_claim_inv.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // PCI
         //print_r($url); die;
 
-        if( $customer_guid == '1F90F5EF90DF11EA818B000D3AA2CAA9' ||  $customer_guid == '907FAFE053F011EB8099063B6ABE2862' ||  $customer_guid == 'D361F8521E1211EAAD7CC8CBB8CC0C93')
+        $check_refno = $this->db->query("SELECT customer_guid,pci_use_inv_refno FROM lite_b2b.acc_settings WHERE pci_use_inv_refno = '1' AND customer_guid = '".$_SESSION['customer_guid']."'")->result_array();
+
+        if(count($check_refno) == 1)
+        {
+            $use_refno_val = 'inv_refno';
+        }
+        else
+        {
+            $use_refno_val = 'promo_refno';
+        }
+
+        if( $use_refno_val == 'inv_refno')
         {
             $check_code = $this->db->query("SELECT a.supplier_code from b2b_summary.promo_taxinv_info a where a.inv_refno = '$refno' and a.customer_guid = '" . $_SESSION['customer_guid'] . "' GROUP BY a.refno")->row('supplier_code');
         }
@@ -400,6 +464,28 @@ class b2b_pci extends CI_Controller
             
         $response = curl_exec($curl);
 
+        // check pdf file directory
+        if (!file_exists($cloud_directory)) {
+            mkdir($cloud_directory, 0777, true);
+        }
+
+        // download pdf file into the cloud directory
+        file_put_contents($cloud_directory.$refno.'.pdf', $response);
+
+        if(file_exists($cloud_directory.$refno.'.pdf')){
+            
+            $update_data = array(
+                'exported_by'       => 'trigger_button',
+                'exported'          => 1,
+                'exported_datetime' => $this->db->query("SELECT NOW() AS current_datetime")->row('current_datetime'),
+            );
+
+            $this->db->where('refno', $refno);
+            $this->db->where('customer_guid', $customer_guid);
+            $this->db->update('b2b_summary.doc_export', $update_data);
+
+        }
+
         header('Content-type:application/pdf');
         header('Content-Disposition: inline; filename='.$filename.'.pdf');
         echo $response; 
@@ -419,12 +505,23 @@ class b2b_pci extends CI_Controller
 
         $refno_array = explode(",",$refno);
 
+        $check_refno = $this->db->query("SELECT customer_guid,pci_use_inv_refno FROM lite_b2b.acc_settings WHERE pci_use_inv_refno = '1' AND customer_guid = '".$_SESSION['customer_guid']."'")->result_array();
+
+        if(count($check_refno) == 1)
+        {
+            $use_refno_val = 'inv_refno';
+        }
+        else
+        {
+            $use_refno_val = 'promo_refno';
+        }
+
         foreach($refno_array as $row2)
         {
             if(!in_array('!PCISUPPMOV',$_SESSION['module_code']))
             {
                 // $this->db->query("UPDATE b2b_summary.promo_taxinv set status = 'printed' where customer_guid ='$customer_guid' and promo_refno = '$row2' and status IN ('','viewed') ");
-                if( $customer_guid == '1F90F5EF90DF11EA818B000D3AA2CAA9' ||  $customer_guid == '907FAFE053F011EB8099063B6ABE2862' ||  $customer_guid == 'D361F8521E1211EAAD7CC8CBB8CC0C93')
+                if( $use_refno_val == 'inv_refno')
                 {
                     $this->db->query("UPDATE b2b_summary.promo_taxinv_info set status = 'printed' where customer_guid ='$customer_guid' and inv_refno = '$row2' and status IN ('','viewed') ");
                 }

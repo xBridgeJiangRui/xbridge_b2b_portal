@@ -36,7 +36,6 @@
 <div class="content-wrapper" style="min-height: 525px; text-align: justify;">
 <div class="container-fluid">
 <br>
-
   <div class="row">
     <div class="col-md-12" >
       <?php if(in_array('IAVA',$this->session->userdata('module_code')))

@@ -796,7 +796,7 @@ class Supplier_registration extends CI_Controller
           WHERE a.supplier_guid = '$user_mapping_supplier_guid' 
           AND a.customer_guid = '$customer_guid'
           AND a.user_guid = '$create_user_guid'
-          AND c.group_info_status NOT IN ('1')
+          AND c.group_info_status NOT IN ('1','4','5')
           GROUP BY b.user_guid,b.acc_guid")->result_array();
     
           if(count($check_is_admin_user_exists) > 0 )
@@ -994,12 +994,13 @@ class Supplier_registration extends CI_Controller
           AND a.customer_guid = b.acc_guid
           INNER JOIN lite_b2b.set_user_group c
           ON b.user_group_guid = c.user_group_guid
+          AND c.admin_active = '1'
           INNER JOIN lite_b2b.set_supplier d
           ON a.supplier_guid = d.supplier_guid
           WHERE a.supplier_guid = '$user_mapping_supplier_guid' 
           AND a.customer_guid = '$customer_guid'
           AND a.user_guid = '$create_user_guid'
-          AND c.group_info_status NOT IN ('1')
+          AND c.group_info_status NOT IN ('1','4','5')
           GROUP BY b.user_guid,b.acc_guid")->result_array();
     
           if(count($check_is_admin_user_exists) > 0 )
@@ -1957,7 +1958,7 @@ class Supplier_registration extends CI_Controller
       $service_date = $this->db->query("SELECT DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH),'%Y-%m-01') AS service_date")->row('service_date');
       $billing_start_date = $this->db->query("SELECT DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 2 MONTH),'%Y-%m-01') AS billing_start_date")->row('billing_start_date');
 
-      if ($customer_guid == '091AC7DC703911EB8137AED06D30787E')  // can be remove after 16-07-2022
+      if ($customer_guid == '091AC7DC703911EB8137AED06D30787E')  // can be remove after matahari go live
       {
         if ($period_current_date == '2023-10') {
           $service_date = '2023-11-01';
@@ -1992,7 +1993,7 @@ class Supplier_registration extends CI_Controller
       $billing_start_date = $this->db->query("SELECT DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH),'%Y-%m-01') AS billing_start_date")->row('billing_start_date');
       //date('Y-m-01', strtotime("+1 month"));
 
-      if ($customer_guid == '091AC7DC703911EB8137AED06D30787E') // can be remove after 31-10-2023
+      if ($customer_guid == '091AC7DC703911EB8137AED06D30787E') // can be remove after matahari go live
       {
         // print_r($current_date); die;
         if ($period_current_date == '2023-10') {

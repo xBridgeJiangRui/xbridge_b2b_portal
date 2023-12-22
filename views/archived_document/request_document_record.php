@@ -193,6 +193,12 @@
 <div class="content-wrapper" style="min-height: 525px; text-align: justify;">
   <div class="container-fluid">
   <br>
+    <?php if($live_date == null){ ?>
+      <div class="alert alert-danger text-center" style="font-size: 18px">
+        Live date is not being set. Kindly inform our support team about this issue.
+        <button type="button" class="close" data-dismiss="alert"><i class="fa fa-remove"></i></button><br>
+      </div>
+    <?php } ?>
     <div class="col-md-12">
       <a class="btn btn-app active" style="color:grey" id="btn_view_pending">
         <i class="fa fa-spinner"></i> Pending 
@@ -205,7 +211,11 @@
         <i class="fa fa-plus-circle"></i> Request New
       </a>
 
-      <?php if(isset($_GET['refno']) && $_SESSION['user_group_name'] == 'SUPER_ADMIN' && ($header_list[0]['status'] == 'SUBMITTED')){
+      <!-- <a class="btn btn-app pull-right" id="btn_setup" style="color:#000000">
+        <i class="fa fa-cog"></i> Setup
+      </a> -->
+
+      <?php if(isset($_GET['guid']) && $_SESSION['user_group_name'] == 'SUPER_ADMIN' && ($header_list[0]['status'] == 'SUBMITTED')){
 
         echo '<a class="btn btn-app pull-right" id="btn_submit_review" style="color:#000000">';
         echo    '<i class="fa fa-check"></i> Submit Review';
@@ -220,11 +230,21 @@
           echo '<a class="btn btn-app pull-right" id="btn_resync_document" style="color:#000000">';
           echo    '<i class="fa fa-refresh"></i> Re-check Doc';
           echo '</a>';
+        }else{
+
+          echo '<a class="btn btn-app pull-right hidden" id="btn_trigger_ticket" style="color:#000000">';
+          echo    '<i class="fa fa-ticket"></i> Create Ticket';
+          echo '</a>';
+
+          echo '<a class="btn btn-app pull-right hidden" id="btn_resync_document" style="color:#000000">';
+          echo    '<i class="fa fa-refresh"></i> Re-check Doc';
+          echo '</a>';
+
         }
         
       } ?>
 
-      <?php if(isset($_GET['refno']) && ($header_list[0]['status'] == 'REVIEWED')){
+      <?php if(isset($_GET['guid']) && ($header_list[0]['status'] == 'REVIEWED')){
 
         echo '<a class="btn btn-app pull-right" id="btn_approve_request" style="color:green">';
         echo    '<i class="fa fa-check"></i> Approved';
@@ -234,6 +254,12 @@
         echo    '<i class="fa fa-times"></i> Rejected';
         echo '</a>';
 
+      } ?>
+
+      <?php if($header_list[0]['status'] == 'APPROVED'){
+          echo '<a class="btn btn-app pull-right" id="btn_view_multiple" style="color:#000000">';
+          echo    '<i class="fa fa-print"></i> Print';
+          echo '</a>';
       } ?>
 
     </div>
@@ -266,7 +292,7 @@
                     <td><?php echo $row['total_doc'];?></td>
                     <td><?php echo $row['requested_by'];?></br><?php echo $row['requested_at'];?></td>
                     <td>
-                      <a class="btn btn-xs btn-primary" id="edit_btn" href="<?php echo site_url('Archived_document/request_document?refno=');?><?php echo $row['request_refno'];?>"><i class="fa fa-edit"></i> Edit</a>
+                      <a class="btn btn-xs btn-primary" id="edit_btn" href="<?php echo site_url('Archived_document/request_document?guid=');?><?php echo $row['request_guid'];?>"><i class="fa fa-edit"></i> Edit</a>
                     </td>
                   </tr>
                   <?php $count++; ?>
@@ -293,7 +319,7 @@
                 <th style="text-align: left;">No</th>
                 <th style="text-align: left;">Request No</th>
                 <th style="text-align: left;">Total Requested Doc</th>
-                <th style="text-align: left;">Total Price</th>
+                <!-- <th style="text-align: left;">Total Price</th> -->
                 <th style="text-align: left;">Requested By</th>
                 <th style="text-align: left;">Submitted By</th>
                 <th style="text-align: left;">Reviewed By</th>
@@ -309,7 +335,7 @@
                     <td><?php echo $count; ?></td>
                     <td><?php echo $row['request_refno'];?></td>
                     <td><?php echo $row['total_doc'];?></td>
-                    <td><?php echo $_SESSION['user_group_name'] == 'SUPER_ADMIN' || $row['status'] == 'APPROVED' ? $row['total_price'] : '';?></td>
+                    <!-- <td><?php echo $_SESSION['user_group_name'] == 'SUPER_ADMIN' || $row['status'] == 'APPROVED' ? $row['total_price'] : '';?></td> -->
                     <td><?php echo $row['requested_by'];?></br><?php echo $row['requested_at'];?></td>
                     <td><?php echo $row['submitted_by'];?></br><?php echo $row['submitted_at'];?></td>
                     <td><?php echo $row['reviewed_by'];?></br><?php echo $row['reviewed_at'];?></td>
@@ -324,7 +350,7 @@
                       <?php } ?>
                     </td>
                     <td>
-                      <a class="btn btn-xs btn-primary" id="view_btn" href="<?php echo site_url('Archived_document?refno=');?><?php echo $row['request_refno'];?>"><i class="fa fa-eye"></i> View</a>
+                      <a class="btn btn-xs btn-primary" id="view_btn" href="<?php echo site_url('Archived_document?guid=');?><?php echo $row['request_guid'];?>"><i class="fa fa-eye"></i> View</a>
                     </td>
                   </tr>
                   <?php $count++; ?>
@@ -350,13 +376,15 @@
               <tr>
                 <th style="text-align: left;">Request No</th>
                 <th style="text-align: left;">Total Requested Doc</th>
-                <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN' || $row['status'] == 'APPROVED'){ ?>
+                <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN' || $header_list[0]['status'] == 'REVIEWED' || $header_list[0]['status'] == 'APPROVED' || $header_list[0]['status'] == 'REJECTED'){ ?>
                   <th style="text-align: left;">Total Price</th>
                 <?php } ?>
                 <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN'){ ?>
                   <th style="text-align: left;">Total Unavailable Doc</th>
+                  <th style="text-align: left;">Total Blocked Doc</th>
                   <th style="text-align: left;">Ticket Created</th>
                 <?php } ?>
+                <th style="text-align: left;">Requested Supplier</th>
                 <th style="text-align: left;">Requested By</th>
                 <th style="text-align: left;">Submitted By</th>
                 <th style="text-align: left;">Reviewed By</th>
@@ -370,13 +398,15 @@
                   <tr req_refno="<?php echo $row['request_refno'];?>">
                     <td><?php echo $row['request_refno'];?></td>
                     <td style="text-align: right;"><?php echo $row['total_doc'];?></td>
-                    <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN' || $row['status'] == 'APPROVED'){ ?>
+                    <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN' || $header_list[0]['status'] == 'REVIEWED' || $header_list[0]['status'] == 'APPROVED' || $header_list[0]['status'] == 'REJECTED'){ ?>
                       <td style="text-align: right;"><span id="sum_total_price"><?php echo $row['total_price'];?></span></td>
                     <?php } ?>
                     <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN'){ ?>
                       <td style="text-align: right;"><span id="total_missing_doc"><?php echo $row['missing_doc'];?></span></td>
+                      <td style="text-align: right;"><?php echo $row['blocked_doc'];?></td>
                       <td style="text-align: left;"><span id="helpdesk_ticket"><?php echo $row['ticket_created'];?></span></td>
                     <?php } ?>
+                    <td><?php echo $requested_supplier; ?></td>
                     <td><?php echo $row['requested_by'];?></br><?php echo $row['requested_at'];?></td>
                     <td><?php echo $row['submitted_by'];?></br><?php echo $row['submitted_at'];?></td>
                     <td><?php echo $row['reviewed_by'];?></br><?php echo $row['reviewed_at'];?></td>
@@ -413,65 +443,101 @@
                 <tr>
                   <th style="text-align: left;">No</th>
                   <th style="text-align: left;">Document Ref No</th>
+                  <th style="text-align: left;">Document Date</th>
                   <th style="text-align: left;">Supplier Code</th>
                   <th style="text-align: left;">Supplier Name</th>
-                  <th style="text-align: left;">Amount</th>
+                  <!-- <th style="text-align: left;">Amount</th> -->
                   <th style="text-align: left;">Document Type</th>
                   <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN'){ ?>
                     <th style="text-align: left;">Pricing Type</th>
                   <?php } ?>
-                  <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN' || $header_list[0]['status'] == 'APPROVED'){
-                    echo '<th style="text-align: left;">Action</th>';
-                  } ?>
+                  <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN' || $header_list[0]['status'] == 'APPROVED'){ ?>
+                    <th style="text-align: left;">Action <input type="checkbox" class="checkbox_input" onclick="$('input[name*=\'selected\']').prop('checked', this.checked);" /></th>
+                  <?php } ?>
                 </tr>
                 </thead>
                 <tbody>
                   <?php $count = 1; ?>
                   <?php foreach ($child_list as $row){ ?>
-                    <tr guid="<?php echo $row['guid'];?>">
-                      <td><?php echo $count; ?></td>
-                      <td><?php echo $row['doc_refno'];?></td>
-                      <td><?php echo $row['SCode'];?></td>
-                      <td><?php echo $row['SName'];?></td>
-                      <td><?php echo $row['total'];?></td>
-                      <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN' && $header_list[0]['status'] == 'SUBMITTED' && ($row['pricing_type'] == '' || $row['doc_type'] == '' || ($row['json_report'] == null && $row['file_path'] == null))){ ?>
-                        <td>
-                          <select id="doc_type" name="doc_type" class="form-control doc_type_option">
-                          <option value="-">NOT FOUND</option>
-                          <?php foreach($doc_type as $type){ ?>
-                            <option value="<?php echo $type ?>" <?php echo (isset($_GET['refno']) && $row['doc_type'] == $type) ? 'selected' : '' ; ?>> 
-                              <?php echo $type; ?>
-                            </option>
-                          <?php } ?>
-                          </select>
-                        </td>
-                      <?php }else{ ?>
-                        <td><span class="doc_type_option"><?php echo $row['doc_type'];?></span></td>
-                      <?php } ?>
-                      <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN'){ ?>
-                        <td>
-                          <select id="pricing_type" name="pricing_type" class="form-control pricing_type_option" <?php echo (isset($_GET['refno']) && $row['status'] != 'SUBMITTED') || $row['file_path'] != null ? 'disabled' : '' ; ?>>
-                          <option value="">NOT FOUND</option>
-                          <?php foreach($pricing_type as $type){ ?>
-                            <option value="<?php echo $type['doc_type'] ?>" <?php echo (isset($_GET['refno']) && $row['pricing_type'] == $type['doc_type']) ? 'selected' : '' ; ?>> 
-                              <?php echo $type['doc_name']; ?>
-                            </option>
-                          <?php } ?>
-                          </select>
-                        </td>
-                      <?php } ?>
-                      <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN' || $header_list[0]['status'] == 'APPROVED'){ ?>
-                        <?php if($row['pricing_type'] == '' || $row['doc_type'] == '' || ($row['json_report'] == null && $row['file_path'] == null)){ ?>
-                          <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN' || $header_list[0]['status'] == 'SUBMITTED'){ ?>
-                            <td><a class="btn btn-xs btn-danger" id="btn_upload_pdf" guid="<?php echo $row['guid'];?>"><i class="fa fa-upload"></i> Upload</a></td>
-                          <?php }else{ ?>
-                            <td><a class="btn btn-xs btn-danger" style="pointer-events: none; cursor: default;"><i class="fa fa-times"></i> Not Found</a></td>
-                          <?php } ?>
-                        <?php }else{ ?>
-                          <td><a class="btn btn-xs btn-warning" id="btn_view_report" guid="<?php echo $row['guid'];?>" doc_refno="<?php echo $row['doc_refno'];?>" doc_type="<?php echo $row['doc_type'];?>" file_path="<?php echo $row['file_path'];?>"><i class="fa fa-file"></i> View</a></td>
+
+                    <?php if(!in_array($row['SCode'], $supplier) && $row['SCode'] != null && $_SESSION['user_group_name'] != 'SUPER_ADMIN'){ ?>
+                      <tr guid="<?php echo $row['guid'];?>">
+                        <td><?php echo $count; ?></td>
+                        <td><?php echo $row['doc_refno'];?></td>
+                        <td><?php echo $row['doc_date'];?></td>
+                        <td><span style="color :red;">(BLOCKED)</span></td>
+                        <td><span style="color :red;">(BLOCKED)</span></td>
+                        <!-- <td style="text-align: right;">0.00</td> -->
+                        <td><span style="color :red;">(BLOCKED)</span></td>
+                        <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN' || $header_list[0]['status'] == 'APPROVED'){ ?>
+                          <td><a class="btn btn-xs btn-danger" style="pointer-events: none; cursor: default;"><i class="fa fa-times"></i> Blocked</a></td>
                         <?php } ?>
-                      <?php } ?>
-                    </tr>
+                      </tr>
+                    <?php }else{ ?>
+                      <tr guid="<?php echo $row['guid'];?>">
+                        <td><?php echo $count; ?></td>
+                        <td><?php echo $row['doc_refno'];?></td>
+                        <td><?php echo ($row['doc_date'] == '' || $row['doc_date'] == null) ? '<span style="color :red;">(NOT AVAILABLE)</span>' : $row['doc_date'];?></td>
+                        <td><?php echo ($row['SCode'] == '' || $row['SCode'] == null || $live_date == null || $row['doc_date'] < $live_date) ? '<span style="color :red;">(NOT AVAILABLE)</span>' : $row['SCode'];?></td>
+                        <td><?php echo ($row['SName'] == '' || $row['SName'] == null || $live_date == null || $row['doc_date'] < $live_date) ? '<span style="color :red;">(NOT AVAILABLE)</span>' : $row['SName'];?></td>
+                        <!-- <td style="text-align: right;"><?php echo number_format($row['total'], 2, '.', ',');?></td> -->
+                        <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN' && $header_list[0]['status'] == 'SUBMITTED' && ($row['pricing_type'] == '' || $row['doc_type'] == '' || ($row['json_report'] == null && $row['file_path'] == null)) && $live_date != null || $row['doc_date'] > $live_date){ ?>
+                          <td>
+                            <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN'){ ?>
+                              <select id="doc_type" name="doc_type" class="form-control doc_type_option">
+                              <option value="-">NOT FOUND</option>
+                              <?php foreach($doc_type as $type){ ?>
+                                <option value="<?php echo $type ?>" <?php echo (isset($_GET['guid']) && $row['doc_type'] == $type) ? 'selected' : '' ; ?>> 
+                                  <?php echo $type; ?>
+                                </option>
+                              <?php } ?>
+                              </select>
+                            <?php }else{ ?>
+                              <?php echo $row['doc_type']; ?>
+                            <?php } ?>
+                          </td>
+                        <?php }else{ ?>
+                          <td><span class="doc_type_option"><span style="color :red;">(NOT AVAILABLE)</span></span></td>
+                        <?php } ?>
+                        <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN'){ ?>
+                          <td>
+
+                            <?php if(!in_array($row['SCode'], $requested_supplier_array) && $row['SCode'] != null && $row['pricing_type'] == ''){ ?>
+                              <select id="pricing_type" name="pricing_type" class="form-control pricing_type_option" <?php echo (isset($_GET['guid']) && $row['status'] != 'SUBMITTED') || $row['file_path'] != null ? 'disabled' : '' ; ?>>
+                              <option value="">NOT FOUND</option>
+                              <option value="" selected>BLOCKED</option>
+                              <?php foreach($pricing_type as $type){ ?>
+                                <option value="<?php echo $type['doc_type'] ?>"> 
+                                  <?php echo $type['doc_name']; ?>
+                                </option>
+                              <?php } ?>
+                              </select>
+                            <?php }else{ ?>
+                              <select id="pricing_type" name="pricing_type" class="form-control pricing_type_option" <?php echo (isset($_GET['guid']) && $row['status'] != 'SUBMITTED') || $row['file_path'] != null ? 'disabled' : '' ; ?>>
+                              <option value="">NOT FOUND</option>
+                              <option value="">BLOCKED</option>
+                              <?php foreach($pricing_type as $type){ ?>
+                                <option value="<?php echo $type['doc_type'] ?>" <?php echo (isset($_GET['guid']) && $row['pricing_type'] == $type['doc_type']) ? 'selected' : '' ; ?>> 
+                                  <?php echo $type['doc_name']; ?>
+                                </option>
+                              <?php } ?>
+                              </select>
+                            <?php } ?>
+                          </td>
+                        <?php } ?>
+                        <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN' || $header_list[0]['status'] == 'APPROVED'){ ?>
+                          <?php if($row['doc_type'] == '' || ($row['json_report'] == null && $row['file_path'] == null)){ ?>
+                            <?php if($_SESSION['user_group_name'] == 'SUPER_ADMIN' || $header_list[0]['status'] == 'SUBMITTED'){ ?>
+                              <td><a class="btn btn-xs btn-danger" id="btn_upload_pdf" guid="<?php echo $row['guid'];?>"><i class="fa fa-upload"></i> Upload</a></td>
+                            <?php }else{ ?>
+                              <td><a class="btn btn-xs btn-danger" style="pointer-events: none; cursor: default;"><i class="fa fa-times"></i> Not Available</a></td>
+                            <?php } ?>
+                          <?php }else{ ?>
+                            <td><a class="btn btn-sm btn-warning" id="btn_view_report" guid="<?php echo $row['guid'];?>" doc_refno="<?php echo $row['doc_refno'];?>" doc_type="<?php echo $row['doc_type'];?>" file_path="<?php echo $row['file_path'];?>" customer_guid="<?php echo $row['customer_guid'];?>"><i class="fa fa-file"></i> View <input type="checkbox" class="checkbox_guid checkbox_input" name="selected[]" value="<?php echo $row['doc_refno']; ?>" style="vertical-align: text-bottom;" onclick="event.stopPropagation();" /></a></td>
+                          <?php } ?>
+                        <?php } ?>
+                      </tr>
+                    <?php } ?>
                   <?php $count++; ?>
                   <?php } ?>
                 </tbody>
@@ -482,6 +548,55 @@
     </div>
 
   </div>
+</div>
+
+<div class="modal" id="setup-configuration-modal">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                  <b>Configuration Setup</b>
+                  <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </h3>
+                
+            </div>
+            <div class="modal-body">
+              <form id="setup_form">
+                <div class="col-md-12">
+                  <div class="row">
+
+                    <div class="row">
+                      <div class="col-md-12" style="min-height: 4vh">
+                        <h4>
+                          <b>Email Setup:
+                            <span style="cursor: help;" data-toggle="tooltip" title="Email address to receive notification whenever supplier request archived document."><i class="fa fa-info-circle"></i></span>
+                            <span style="margin-right: 10vw;"></span><a class="btn btn-xs btn-info" id="addEmail"><i class="fa fa-plus"></i> Add</a>
+                          </b>
+                        </h4>
+                      </div>
+
+                      <div class="input-group">
+                        <div class="col-md-10">
+                            <input type="email" class="form-control email-input" name="email[]" style="width: 20vw;" required> 
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-danger removeEmail hidden"><i class="fa fa-minus"></i></button>
+                        </div>
+                      </div>
+
+                      <div id="additionalEmails"></div>
+
+                    </div>
+
+                  </div>
+                </div>  
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="submit" id="submit_setup_form" class="btn btn-primary">Submit</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div id="modalViewReport" class="modal" role="dialog" data-keyboard="false" data-backdrop ="static">
@@ -560,11 +675,95 @@
 
 <button id="floatingButton" class="btn btn-xs btn-success hidden"><i class="fa fa-check-circle"></i> Saved</button>
 
+<form target="_blank" action="<?php echo site_url('Archived_document/view_multiple_report') ?>" id="view_multiple_report" method="post"></form>
+
+<script type="text/javascript">
+
+  $(document).ready(function () {
+    var doc_status = "<?php echo $header_list[0]['status']; ?>";
+
+    if(doc_status != 'APPROVED'){
+      $('.checkbox_input').addClass('hidden');
+    }else{
+      $('.checkbox_input').removeClass('hidden');
+    }
+  });
+
+</script>
+
+<script type="text/javascript">
+
+  $(document).ready(function () {
+    const modal = $('#setup-configuration-modal');
+    const btn = $('#btn_setup');
+    const closeBtn = $('.close');
+
+    btn.click(function () {
+        modal.css('display', 'block');
+    });
+
+    closeBtn.click(function () {
+        modal.css('display', 'none');
+    });
+
+    $(window).click(function (event) {
+        if (event.target === modal[0]) {
+            modal.css('display', 'none');
+        }
+    });
+
+    $('#setup_form').on('click', '#addEmail', function () {
+
+      $('.removeEmail').removeClass('hidden');
+
+      appendDiv = '</br>';
+      appendDiv += '<div class="input-group">';
+      appendDiv += '  <div class="col-md-10">';
+      appendDiv += '    <input type="email" class="form-control email-input" name="email[]" style="width: 20vw;" required>';
+      appendDiv += '  </div>';
+      appendDiv += '  <div class="col-md-1">';
+      appendDiv += '    <button type="button" class="btn btn-danger removeEmail"><i class="fa fa-minus"></i></button>';
+      appendDiv += '  </div>';
+      appendDiv += '</div>';
+
+      const newEmailInput = $(appendDiv);
+      $('#additionalEmails').append(newEmailInput);
+    });
+
+    $('#setup_form').on('click', '.removeEmail', function () {
+      $(this).closest('.input-group').remove();
+    });
+
+    $('#setup_form').on('click', '#submit_setup_form', function () {
+      alert(21321323);
+      $('#setup_form').submit();
+    });
+
+    $('#setup_form').submit(function (event) {
+
+        event.preventDefault();
+
+        const emailArray = [];
+        $('.email-input').each(function () {
+            const emailValue = $(this).val();
+            if (emailValue.trim() !== '') {
+                emailArray.push(emailValue);
+            }
+        });
+
+        // Now you can send the emailArray to your server to save it in the database
+        console.log(emailArray);
+    });
+
+  });
+
+</script>
+
 <script type="text/javascript">
 
   $(document).ready(function() {
 
-    var check_id = "<?php echo isset($_GET['refno']) ? 1 : 0 ; ?>";
+    var check_id = "<?php echo isset($_GET['guid']) ? 1 : 0 ; ?>";
 
     $('#view_pending_list thead tr').clone(true).addClass('filters').appendTo('#view_pending_list thead');
 
@@ -645,7 +844,7 @@
     var table = $('#view_complete_list').DataTable({
         columnDefs: [
           // { className: "aligncenter", targets: [0,-1,-2] },
-          { className: "alignright", targets: [2,3] },
+          { className: "alignright", targets: [2] },
           { className: "alignleft", targets: '_all' },
           { width: '2%', targets: [1, -1] },
           { width: '1%', targets: '_all' },
@@ -683,9 +882,9 @@
             var columnCells = dataTable.column(colIdx).nodes();
             var columnSize = $(columnCells[0]).width();
 
-            if (colIdx == 0 || colIdx == 9) { 
+            if (colIdx == 0 || colIdx == 8) { 
               $(cell).html('');
-            }else if(colIdx == 8){
+            }else if(colIdx == 7){
               $(cell).html('<select id="filter_status_option" class="form-control"><option value=""> --Choose Value-- </option><option value="SUBMITTED">Submitted</option><option value="REVIEWED">Reviewed</option><option value="APPROVED">Approved</option><option value="REJECTED">Rejected</option></select>');
             }else{
               $(cell).html('<input type="text" class="form-control" style="width:'+ 120 +'px;" placeholder="' + title + '" />');
@@ -714,7 +913,7 @@
               var regexr = '({search})';
               
               // Search the column for that value
-              api.column(8).search(this.value != '' ? regexr.replace('{search}', '(((' + selectedValue + ')))') : '', selectedValue != '', selectedValue == '').draw();
+              api.column(7).search(this.value != '' ? regexr.replace('{search}', '(((' + selectedValue + ')))') : '', selectedValue != '', selectedValue == '').draw();
             });
 
           });
@@ -750,6 +949,7 @@
     $('#view_complete_list_child').DataTable(
       {
         "columnDefs": [
+          {targets: -1, orderable: false },
           // { className: "aligncenter", targets: [] },
           // { className: "alignleft", targets: [0,1,2,3] },
           { className: "alignleft", targets: '_all' },
@@ -784,6 +984,7 @@
       $('.class_complete_list').addClass('hidden');
       $('.class_pending_list').removeClass('hidden');
 
+      $('#btn_view_multiple').addClass('hidden');
       $('#btn_submit_review').addClass('hidden');
       $('#btn_approve_request').addClass('hidden');
       $('#btn_reject_request').addClass('hidden');
@@ -806,6 +1007,7 @@
       $('.class_pending_list').addClass('hidden');
       $('.class_complete_list').removeClass('hidden');
 
+      $('#btn_view_multiple').addClass('hidden');
       $('#btn_submit_review').addClass('hidden');
       $('#btn_approve_request').addClass('hidden');
       $('#btn_reject_request').addClass('hidden');
@@ -822,10 +1024,10 @@
 
     $(document).on('click','#btn_submit_review',function(){
 
-      var req_refno = '<?php echo $_GET["refno"] ?>';
+      var req_guid = '<?php echo $_GET["guid"] ?>';
       var total_missing_doc = $('#total_missing_doc').text();
 
-      if(req_refno == '' || req_refno == null)
+      if(req_guid == '' || req_guid == null)
       {
 
         Swal.fire('Missing Request No','','error');
@@ -857,7 +1059,7 @@
           $.ajax({
             url:"<?php echo site_url('Archived_document/submit_review') ?>",
             method:"POST",
-            data:{req_refno:req_refno},
+            data:{req_guid:req_guid},
             beforeSend:function(){
               $('.btn').button('loading');  
             },
@@ -872,7 +1074,7 @@
                 Swal.fire(json.message,'','success');
 
                 setTimeout(function(){
-                  window.location.href = '<?php echo site_url("Archived_document?refno=");?><?php echo $row["request_refno"];?>';
+                  window.location.href = '<?php echo site_url("Archived_document?guid=");?><?php echo $row["request_guid"];?>';
                 },500);
 
               }else{
@@ -894,9 +1096,9 @@
 
     $(document).on('click','#btn_resync_document',function(){
 
-      var req_refno = '<?php echo $_GET["refno"] ?>';
+      var req_guid = '<?php echo $_GET["guid"] ?>';
 
-      if(req_refno == '' || req_refno == null)
+      if(req_guid == '' || req_guid == null)
       {
 
         Swal.fire('Missing Request No','','error');
@@ -909,15 +1111,16 @@
       $('#loading-screen').removeClass('hidden');
       $('#loader_message').text('Checking the document');
 
-      function resyncDocument(req_refno, checking_flag = 0) {
+      function resyncDocument(req_guid, checking_flag = 0) {
 
         var initial_missing = $('#total_missing_doc').text();
 
         $.ajax({
           url:"<?php echo site_url('Archived_document/resync_document') ?>",
           type: 'POST',
-          data:{req_refno:req_refno,checking_flag:checking_flag,initial_missing:initial_missing},
+          data:{req_guid:req_guid,checking_flag:checking_flag,initial_missing:initial_missing},
           success: function(data) {
+            console.log(data);
             json = JSON.parse(data);
 
             $('#progress-bar-meter').val(json.progress);
@@ -928,12 +1131,12 @@
               Swal.fire(json.message,'','success');
 
               setTimeout(function(){
-                window.location.href = '<?php echo site_url("Archived_document?refno=");?><?php echo $row["request_refno"];?>';
+                window.location.href = '<?php echo site_url("Archived_document?guid=");?><?php echo $row["request_guid"];?>';
               },500);
 
             } else {
               setTimeout(function() {
-                resyncDocument(req_refno, 1);
+                resyncDocument(req_guid, 1);
               }, 500);
             }
           },
@@ -943,15 +1146,15 @@
         });
       }
 
-      resyncDocument(req_refno);
+      resyncDocument(req_guid);
 
     });
 
     $(document).on('click','#btn_trigger_ticket',function(){
 
-      var req_refno = '<?php echo $_GET["refno"] ?>';
+      var req_guid = '<?php echo $_GET["guid"] ?>';
 
-      if(req_refno == '' || req_refno == null)
+      if(req_guid == '' || req_guid == null)
       {
 
         Swal.fire('Missing Request No','','error');
@@ -980,7 +1183,7 @@
           $.ajax({
             url:"<?php echo site_url('Archived_document/trigger_ticket') ?>",
             method:"POST",
-            data:{req_refno:req_refno},
+            data:{req_guid:req_guid},
             beforeSend:function(){
               $('.btn').button('loading');  
             },
@@ -1016,9 +1219,9 @@
 
     $(document).on('click','#btn_approve_request',function(){
 
-      var req_refno = '<?php echo $_GET["refno"] ?>';
+      var req_guid = '<?php echo $_GET["guid"] ?>';
 
-      if(req_refno == '' || req_refno == null)
+      if(req_guid == '' || req_guid == null)
       {
 
         Swal.fire('Missing Request No','','error');
@@ -1028,7 +1231,7 @@
 
       Swal.fire({
         title: 'Confirm approve this request document?',
-        text: 'By approving this request document, you acknowledge that extra fees will be appended to your monthly billing statement.',
+        text: 'By approving this request document, you acknowledge that extra fees will be charged to your monthly billing statement.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, confirm!',
@@ -1044,7 +1247,7 @@
           $.ajax({
             url:"<?php echo site_url('Archived_document/approve_request') ?>",
             type: 'POST',
-            data:{req_refno:req_refno},
+            data:{req_guid:req_guid},
             beforeSend:function(){
               $('.btn').button('loading');  
             },
@@ -1058,7 +1261,7 @@
                 Swal.fire(json.message,'','success');
 
                 setTimeout(function(){
-                  window.location.href = '<?php echo site_url("Archived_document?refno=");?><?php echo $row["request_refno"];?>';
+                  window.location.href = '<?php echo site_url("Archived_document?guid=");?><?php echo $row["request_guid"];?>';
                 },500);
 
               } else {
@@ -1078,9 +1281,9 @@
 
     $(document).on('click','#btn_reject_request',function(){
 
-      var req_refno = '<?php echo $_GET["refno"] ?>';
+      var req_guid = '<?php echo $_GET["guid"] ?>';
 
-      if(req_refno == '' || req_refno == null)
+      if(req_guid == '' || req_guid == null)
       {
 
         Swal.fire('Missing Request No','','error');
@@ -1106,7 +1309,7 @@
           $.ajax({
             url:"<?php echo site_url('Archived_document/reject_request') ?>",
             type: 'POST',
-            data:{req_refno:req_refno},
+            data:{req_guid:req_guid},
             beforeSend:function(){
               $('.btn').button('loading');  
             },
@@ -1120,7 +1323,7 @@
                 Swal.fire(json.message,'','success');
 
                 setTimeout(function(){
-                  window.location.href = '<?php echo site_url("Archived_document?refno=");?><?php echo $row["request_refno"];?>';
+                  window.location.href = '<?php echo site_url("Archived_document?guid=");?><?php echo $row["request_guid"];?>';
                 },500);
 
               } else {
@@ -1333,7 +1536,7 @@
             Swal.fire(json.message,'','success');
 
             setTimeout(function(){
-              window.location.href = '<?php echo site_url("Archived_document?refno=");?><?php echo $row["request_refno"];?>';
+              window.location.href = '<?php echo site_url("Archived_document?guid=");?><?php echo $row["request_guid"];?>';
             },500);
 
           }else{
@@ -1363,7 +1566,7 @@
     $('#view_complete_list_child').on('change', '.doc_type_option', function() {    
 
       var rowData = [];
-      var req_refno = '<?php echo $_GET["refno"] ?>';
+      var req_guid = '<?php echo $_GET["guid"] ?>';
 
       $('#view_complete_list_child tr').each(function() {
         var row = {};
@@ -1383,7 +1586,7 @@
       $.ajax({
         url: "<?php echo site_url('Archived_document/update_doctype');?>",
         type: 'POST',
-        data: {req_refno:req_refno,rowData:rowData},
+        data: {req_guid:req_guid,rowData:rowData},
         success: function(data) {
 
           json = JSON.parse(data);
@@ -1392,6 +1595,12 @@
           $('#floatingButton').fadeIn().delay(500).fadeOut();
 
           $('#sum_total_price').text(formatNumberWithCommas(json.updated_total));
+
+          var urlParams = window.location.search;
+          var newUrl = window.location.pathname + urlParams;
+          window.location.href = newUrl;
+
+          // $("#btn_resync_document").trigger("click");
 
         },
         error: function(xhr, ajaxOptions, thrownError) {
@@ -1404,7 +1613,7 @@
     $('#view_complete_list_child').on('change', '.pricing_type_option', function() {    
 
       var rowData = [];
-      var req_refno = '<?php echo $_GET["refno"] ?>';
+      var req_guid = '<?php echo $_GET["guid"] ?>';
 
       $('#view_complete_list_child tr').each(function() {
         var row = {};
@@ -1420,7 +1629,7 @@
       $.ajax({
         url: "<?php echo site_url('Archived_document/update_pricing');?>",
         type: 'POST',
-        data: {req_refno:req_refno,rowData:rowData},
+        data: {req_guid:req_guid,rowData:rowData},
         success: function(data) {
 
           json = JSON.parse(data);
@@ -1460,4 +1669,48 @@
       $('#embed_loader').hide();
     });
 });
+</script>
+
+<script type="text/javascript">
+
+  $(document).ready(function () {
+    $("#btn_view_multiple").on("click", function () {
+      var selectedReports = [];
+
+      $(".checkbox_guid:checked").each(function () {
+        var $parentRow = $(this).closest("tr");
+        var doc_refno = $parentRow.find("#btn_view_report").attr("doc_refno");
+        var doc_type = $parentRow.find("#btn_view_report").attr("doc_type");
+        var file_path = $parentRow.find("#btn_view_report").attr("file_path");
+        var customer_guid = $parentRow.find("#btn_view_report").attr("customer_guid");
+
+        selectedReports.push({
+          doc_refno: doc_refno,
+          doc_type: doc_type,
+          file_path: file_path,
+          customer_guid: customer_guid
+        });
+      });
+
+      if (selectedReports.length > 0) {
+
+        var form = document.getElementById("view_multiple_report");
+        
+        var postdata = document.createElement('input');
+        postdata.setAttribute('type', 'hidden');
+        postdata.setAttribute('name', 'postdata');
+        postdata.value = JSON.stringify(selectedReports);
+
+        var submitButton = document.createElement('input');
+        submitButton.setAttribute('type', 'submit');
+
+        form.appendChild(postdata);
+        form.appendChild(submitButton);
+    
+        form.submit();
+      }else{
+        Swal.fire('No document selected','','error');
+      }
+    });
+  });
 </script>

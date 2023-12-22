@@ -75,7 +75,7 @@
 
         <?php } } ?> 
         <?php echo $hide_url ?>         
-                <a class="btn btn-app" href="<?php echo site_url('json/b2b_po/export_excel')?>?refno=<?php echo $_REQUEST['trans'] ?>&loc=<?php echo $_REQUEST['loc'] ?>">
+                <a class="btn btn-app" href="<?php echo site_url('b2b_po/export_excel')?>?refno=<?php echo $_REQUEST['trans'] ?>&loc=<?php echo $_REQUEST['loc'] ?>">
           <i class="fa fa-file-excel-o"></i> CSV
         </a>    
 

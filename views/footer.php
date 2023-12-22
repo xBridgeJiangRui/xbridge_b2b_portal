@@ -287,7 +287,7 @@ else
       <?php if ($_SESSION['user_group_name'] == 'SUPER_ADMIN') { ?>
 
       <label for="topic_guid">Staff(Admin)</label>
-      <select class="form-control" name="assigned_guid" id="assigned_guid" required >
+      <select class="form-control" name="assigned_guid" id="assigned_guid" >
         <option value="">-Select-</option>
         <?php foreach ($get_query_admin_user as $key) { ?>
           <option value="<?php echo $key->user_guid ?>"><?php echo $key->user_name .'-'.$key->user_id ?></option>
@@ -2094,17 +2094,8 @@ notifications_loading = $('#notifications_loading').val()
               { "data": "name" },
               { "data": "sup_name" },
               { "data": "reg_no" },
+              { "data": "supply_type" },  
               { "data": "block" },
-              { "data": "remark1" ,render: function (data, type , row){
-
-              var element = '';
-              var element1 = data.split("]").join("]</b><br/>").split("[").join("<br><b>[");
-
-              element += '<span>'+element1.replace('<br>','')+'</span>';
-
-              return element;
-
-              }},
               { "data": "PIC" },
               { "data": "invoice_no" },
               //{ "data": "training_pax" },
@@ -2160,7 +2151,17 @@ notifications_loading = $('#notifications_loading').val()
             //  },
             
             //   { "data": "STATUS" },  
-              { "data": "supply_type" },  
+              
+              { "data": "remark1" ,render: function (data, type , row){
+
+                var element = '';
+                var element1 = data.split("]").join("]</b><br/>").split("[").join("<br><b>[");
+
+                element += '<span>'+element1.replace('<br>','')+'</span>';
+
+                return element;
+
+                }},
               
            ],
             "columnDefs": [

@@ -276,10 +276,20 @@ po_new_table = function()
     span_button_para += '<span class="pill_button">Vendor Code :'+display_vendor+'</span>';
   }
 
-  if(po_status != '' && po_status != null)
+  if (po_status != null) 
   {
-    span_button_para += '<span class="pill_button">'+po_status+'</span>';
+    if (po_status === 'pacc') 
+    {
+      span_button_para += '<span class="pill_button">New - Viewed - Printed</span>';
+    } else if (po_status === '') 
+    {
+      span_button_para += '<span class="pill_button">New</span>';
+    } else 
+    {
+      span_button_para += '<span class="pill_button">' + po_status + '</span>';
+    }
   }
+
 
   if(po_num != '' && po_num != null)
   {

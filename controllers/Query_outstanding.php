@@ -1856,7 +1856,7 @@ class Query_outstanding extends CI_Controller
 
             $get_acc = $this->db->query("SELECT a.acc_guid,a.acc_name FROM lite_b2b.acc a WHERE a.isactive = '1' ORDER BY a.acc_name ASC");
 
-            $get_supplier = $this->db->query("SELECT a.supplier_guid, a.supplier_name FROM lite_b2b.set_supplier a WHERE a.`isactive` = '1' AND a.`suspended` = '0' ORDER BY a.supplier_name ASC");
+            $get_supplier = $this->db->query("SELECT a.supplier_guid, a.supplier_name FROM lite_b2b.set_supplier a ORDER BY a.supplier_name ASC");
 
             // echo $bank_list_dropdown;die;
             $data = array(
@@ -3355,4 +3355,310 @@ class Query_outstanding extends CI_Controller
 
         echo json_encode($output);
     }
+
+    public function extend_s()
+    {
+        ini_set('memory_limit', '-1');
+        ini_set('max_execution_time', 0); 
+
+        $draw = intval($this->input->post("draw"));
+        $start = intval($this->input->post("start"));
+        $length = intval($this->input->post("length"));
+        $order = $this->input->post("order");
+        $search= $this->input->post("search");
+        $search = $search['value'];
+        $col = 0;
+        $dir = "";
+
+        if(!empty($order))
+        {
+          foreach($order as $o)
+          {
+              $col = $o['column'];
+              $dir= $o['dir'];
+          }
+        }
+
+        if($dir != "asc" && $dir != "desc")
+        {
+          $dir = "desc";
+        }
+
+        $valid_columns = array(
+            0=>'guid',
+            1=>'acc_name',
+            2=>'supplier_name',
+            3=>'user_id',
+            4=>'created_at',
+            5=>'created_by',
+            6=>'isactive',
+
+        );
+
+        if(!isset($valid_columns[$col]))
+        {
+          $order = null;
+        }
+        else
+        {
+          $order = $valid_columns[$col];
+        }
+
+        if($order !=null)
+        {   
+          // $this->db->order_by($order, $dir);
+
+          $order_query = "ORDER BY " .$order. "  " .$dir;
+        }
+
+        $like_first_query = '';
+        $like_second_query = '';
+
+        if(!empty($search))
+        {
+          $x=0;
+          foreach($valid_columns as $sterm)
+          {
+              if($x==0)
+              {
+                  $like_first_query = "WHERE $sterm LIKE '%".$search."%'";
+
+              }
+              else
+              {
+                  $like_second_query .= "OR $sterm LIKE '%".$search."%'";
+
+              }
+              $x++;
+          }
+           
+        }
+
+        // $this->db->limit($length,$start);
+
+        $limit_query = " LIMIT " .$start. " , " .$length;
+
+        $sql = "SELECT es.guid, es.customer_guid, es.supplier_guid, es.user_guid, a.acc_name, ss.supplier_name, su.user_id, es.created_at, es.created_by, es.isactive
+
+        FROM lite_b2b.extend_settings AS es
+        INNER JOIN lite_b2b.acc AS a
+        ON es.customer_guid = a.acc_guid
+        
+        INNER JOIN lite_b2b.set_supplier AS ss
+        ON es.supplier_guid = ss.supplier_guid
+        
+        INNER JOIN lite_b2b.set_user AS su
+        ON es.user_guid = su.user_guid
+        AND es.customer_guid = su.acc_guid";
+        
+        $query = "SELECT * FROM ( ".$sql." ) aa ".$like_first_query.$like_second_query.$order_query.$limit_query;
+
+        $result = $this->db->query($query);
+
+        //echo $this->db->last_query(); die;
+
+        if(!empty($search))
+        {
+            $query_filter = "SELECT * FROM ( ".$sql." ) a ".$like_first_query.$like_second_query;
+            $result_filter = $this->db->query($query_filter)->result();
+            $total = count($result_filter);
+        }
+        else
+        {
+            $total = $this->db->query($sql)->num_rows();
+        }
+
+        $data = array();
+        foreach($result->result() as $row)
+        {
+            $nestedData['guid'] = $row->guid;
+            $nestedData['customer_guid'] = $row->customer_guid;
+            $nestedData['acc_name'] = $row->acc_name;
+            $nestedData['supplier_guid'] = $row->supplier_guid;
+            $nestedData['supplier_name'] = $row->supplier_name;
+            $nestedData['user_guid'] = $row->user_guid;
+            $nestedData['user_id'] = $row->user_id;
+            $nestedData['created_at'] = $row->created_at;
+            $nestedData['created_by'] = $row->created_by;
+            $nestedData['isactive'] = $row->isactive;
+
+            $data[] = $nestedData;
+
+        }
+
+        $output = array(
+          "draw" => $draw,
+          "recordsTotal" => $total,
+          "recordsFiltered" => $total,
+          "data" => $data
+        );
+
+        echo json_encode($output);
+    }
+    
+    public function delete_extend()
+    {
+        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login())
+        {     
+            $user_guid = $_SESSION['user_guid']; 
+            $user_id = $this->db->query("SELECT a.user_id FROM lite_b2b.set_user a WHERE a.user_guid ='$user_guid'")->row('user_id');
+
+            $guid = $this->input->post('guid');
+
+            $delete_data = $this->db->query("DELETE FROM lite_b2b.extend_settings WHERE `guid` = '$guid' ");
+
+            $error = $this->db->affected_rows();
+
+            if($error > 0)
+            {
+                $data = array(
+                    'para1' => 'true',
+                    'msg' => 'Delete Successfully',
+    
+                );    
+                echo json_encode($data);  
+            }
+            else
+            {
+                $data = array(
+                    'para1' => 'true',
+                    'msg' => 'Error',
+    
+                );    
+                echo json_encode($data);  
+            }
+     
+        }
+        else
+        {
+            $this->session->set_flashdata('message', 'Session Expired! Please relogin');
+            redirect('#');
+        }  
+    }
+
+    public function update_extend()
+    {
+        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login())
+        {     
+            $user_guid = $_SESSION['user_guid']; 
+            $user_id = $this->db->query("SELECT a.user_id FROM lite_b2b.set_user a WHERE a.user_guid ='$user_guid'")->row('user_id');
+
+            $guid = $this->input->post('guid');
+            $customer_guid = $this->input->post('edit_retailer');
+            $supplier_guid = $this->input->post('edit_supplier');
+            $edit_email = $this->input->post('edit_email');
+
+            $update_data = $this->db->query("UPDATE `lite_b2b`.`extend_settings` SET `customer_guid` = '$customer_guid', `supplier_guid` = '$supplier_guid' , `user_guid` = '$edit_email'  WHERE `guid` = '$guid' ");
+
+            $error = $this->db->affected_rows();
+
+            if($error > 0)
+            {
+                $data = array(
+                    'para1' => 'true',
+                    'msg' => 'Update Successfully',
+    
+                );    
+                echo json_encode($data);  
+            }
+            else
+            {
+                $data = array(
+                    'para1' => 'true',
+                    'msg' => 'No Update',
+    
+                );    
+                echo json_encode($data);  
+            }
+     
+        }
+        else
+        {
+            $this->session->set_flashdata('message', 'Session Expired! Please relogin');
+            redirect('#');
+        }  
+    }
+
+    public function add_new_setting()
+    {
+        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login()) {     
+            $user_guid = $_SESSION['user_guid']; 
+            $user_id = $this->db->query("SELECT a.user_id FROM lite_b2b.set_user a WHERE a.user_guid ='$user_guid'")->row('user_id');
+
+            $customer_guid = $this->input->post('new_retailer');
+            $supplier_guid = $this->input->post('new_supplier');
+            $emails = $this->input->post('email');
+            $isactive = '1';
+
+            foreach ($emails as $email) {
+                $check_data = $this->db->query("SELECT es.* from lite_b2b.extend_settings es WHERE es.customer_guid = '$customer_guid' AND es.supplier_guid = '$supplier_guid' AND es.user_guid = '$email'")->result_array();
+
+                if (count($check_data) > 0) {
+                    $data = array(
+                        'para1' => 'false',
+                        'msg' => 'Data already exist',
+                    );
+                    echo json_encode($data);
+                    exit();
+                }
+
+                $data = array(
+                    'guid' => $this->db->query("SELECT REPLACE(UPPER(UUID()),'-','') AS guid")->row('guid'),
+                    'customer_guid' => $customer_guid,
+                    'supplier_guid' => $supplier_guid,
+                    'user_guid' => $email,
+                    'created_at' => $this->db->query("SELECT NOW() as now")->row('now'),
+                    'created_by' => $user_id,
+                    'isactive' =>  $isactive,
+                );
+
+                $this->db->insert('lite_b2b.extend_settings', $data);
+
+                $error = $this->db->affected_rows();
+
+                if ($error <= 0) {
+                    $data = array(
+                        'para1' => 'true',
+                        'msg' => 'Error',
+                    );    
+                    echo json_encode($data);  
+                    exit();
+                }
+            }
+
+            $data = array(
+                'para1' => 'true',
+                'msg' => 'Insert Successfully',
+            );    
+            echo json_encode($data);
+        } else {
+            $this->session->set_flashdata('message', 'Session Expired! Please relogin');
+            redirect('#');
+        }  
+    }
+
+    public function fetch_user_id()
+    {
+        $customer_guid = $_SESSION['customer_guid']; // Fetching the customer GUID from the session
+        $type_val = $this->input->post('type_val'); // Fetching the 'type_val' from the input
+        $type_val1 = $this->input->post('type_val1');
+
+        $database_query = $this->db->query("SELECT ssur.supplier_guid, su.user_id, su.user_guid
+        FROM lite_b2b.set_user su
+        INNER JOIN lite_b2b.set_supplier_user_relationship ssur
+        ON su.user_guid = ssur.user_guid
+        AND su.acc_guid = ssur.customer_guid
+        
+        INNER JOIN lite_b2b.set_supplier_group ssg
+        ON ssur.supplier_group_guid = ssg.supplier_group_guid
+        
+        WHERE ssur.supplier_guid = '$type_val1'
+        AND ssur.customer_guid = '$type_val' ");
+
+        $data = array(
+            'email' => $database_query->result()
+        );
+
+        echo json_encode($data);
+    } 
 }

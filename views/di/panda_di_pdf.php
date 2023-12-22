@@ -52,6 +52,19 @@
                     </object>
                 </div> -->
              <!-- <p><a href="Panda_home/logout">Logout</a></p> -->
+        <?php if($view_json == '1')
+        {
+          ?>
+          <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
+            <div id="accconceptCheck">
+              <embed id="embed" height="750px" width="100%" src="<?= $request_link; ?>"></embed>
+            </div>
+          </div>
+          <?php
+        }
+        else
+        {
+          ?>
                 <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
 
                   <?php 
@@ -78,7 +91,10 @@
 
 
                     
-                </div>             
+                </div>  
+          <?php
+        }
+        ?>           
 
         </div>
       </div>

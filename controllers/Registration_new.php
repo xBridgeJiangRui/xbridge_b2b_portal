@@ -1100,7 +1100,7 @@ class registration_new extends CI_Controller
               AND a.`customer_guid` = h.`customer_guid`
               AND a.`supplier_guid` = h.`supplier_guid`
             WHERE a.customer_guid = '" . $_SESSION['customer_guid'] . "' 
-            ORDER BY FIELD(a.form_status, 'Advance','New','Processing','Save-Progress','Send','Registered','Archived','') , a.create_at DESC) aa 
+            ORDER BY FIELD(a.form_status, 'New','Processing','Save-Progress','Send','','Registered','Terminated','Archived') , a.create_at DESC) aa 
             WHERE aa.customer_guid = '" . $_SESSION['customer_guid'] . "' ";
     } else {
       $query = "
@@ -1290,7 +1290,7 @@ class registration_new extends CI_Controller
 
       $acc_branch = $this->db->query("SELECT a.NAME FROM b2b_summary.`supcus` a INNER JOIN lite_b2b.acc b ON a.customer_guid = b.acc_guid LIMIT 0, 100");
 
-      $get_acc_settings = $this->db->query("SELECT a.* FROM lite_b2b.`acc_settings` a WHERE a.customer_guid = '$customer_guid'");
+      $get_acc_settings = $this->db->query("SELECT a.*,b.azure_container_name FROM lite_b2b.`acc_settings` a INNER JOIN lite_b2b.acc b ON a.customer_guid = b.acc_guid WHERE a.customer_guid = '$customer_guid'");
 
       $acc_settings_maintenance = $get_acc_settings->row('user_account_maintenance');
 
@@ -1337,7 +1337,7 @@ class registration_new extends CI_Controller
       $myArray_3 = explode(',', $vendor_remark_edit);
       $myArray_3 = array_filter($myArray_3); //show vendor code remark array
 
-      $get_user_group = $this->db->query("SELECT user_group_guid,user_group_name FROM lite_b2b.set_user_group WHERE group_info_status >= '1' ORDER BY group_info_status ASC");
+      $get_user_group = $this->db->query("SELECT user_group_guid,user_group_name FROM lite_b2b.set_user_group WHERE group_info_status >= '1' AND isactive = '1' ORDER BY group_info_status ASC");
 
       if($get_user_group->num_rows() == 0)
       {
@@ -1378,8 +1378,17 @@ class registration_new extends CI_Controller
           $dis_msg2 = 'Not Found';
         }   
 
+        if($acc_settings_maintenance == '0')
+        {
+          $user_group_dropdown_array = $this->db->query("SELECT * FROM set_user_group WHERE module_group_guid = '".$this->session->userdata('module_group_guid')."' AND isactive = '1' ORDER BY group_info_status DESC, admin_active DESC , user_group_name ASC");
+        }
+        else
+        {
+          $user_group_dropdown_array = $this->db->query("SELECT * FROM set_user_group WHERE module_group_guid = '".$this->session->userdata('module_group_guid')."' AND isactive = '1' AND admin_active >='1' ORDER BY group_info_status DESC, admin_active DESC , user_group_name ASC");
+        }
         // $user_group_dropdown_array = $this->db->query("SELECT * FROM set_user_group WHERE module_group_guid = '" . $this->session->userdata('module_group_guid') . "' ORDER BY user_group_name ASC");
-        $user_group_dropdown_array = $this->db->query("SELECT * FROM set_user_group WHERE module_group_guid = '".$this->session->userdata('module_group_guid')."' AND isactive = '1' AND admin_active >='1' ORDER BY group_info_status DESC, admin_active DESC , user_group_name ASC");
+
+        // $user_group_dropdown_array = $this->db->query("SELECT * FROM set_user_group WHERE module_group_guid = '".$this->session->userdata('module_group_guid')."' AND isactive = '1' AND admin_active >='1' ORDER BY group_info_status DESC, admin_active DESC , user_group_name ASC");
 
         $check_user_group_dropdown = $this->db->query("SELECT * FROM lite_b2b.set_user a WHERE a.user_id = '$part1' AND a.acc_guid = '" . $register->row('customer_guid') . "' GROUP BY a.user_guid");
         // echo $this->db->last_query().';<br>';
@@ -1670,6 +1679,7 @@ class registration_new extends CI_Controller
         'get_user_group' => $get_user_group,
         'get_user_group_guid' => $get_user_group_guid,
         'acc_settings_maintenance' => $acc_settings_maintenance,
+        'get_acc_settings' => $get_acc_settings,
       );
 
       $this->load->view('header');
@@ -4031,7 +4041,7 @@ class registration_new extends CI_Controller
         die;
       }
 
-      $check_user_info = $this->db->query("SELECT b.supplier_guid,c.supplier_name FROM lite_b2b.set_user a 
+      $check_user_info = $this->db->query("SELECT a.user_guid,b.supplier_guid,c.supplier_name FROM lite_b2b.set_user a 
       INNER JOIN lite_b2b.set_supplier_user_relationship b
       ON a.user_guid = b.user_guid
       AND a.acc_guid = b.customer_guid
@@ -4045,19 +4055,24 @@ class registration_new extends CI_Controller
         foreach($check_user_info->result() as $row)
         {
           $user_mapping_supplier_guid = $row->supplier_guid;
+          $create_user_guid = $row->user_guid;
   
-          $check_is_admin_user_exists = $this->db->query("SELECT b.user_group_guid,b.user_id FROM lite_b2b.set_supplier_user_relationship a
+          // why need check group_info_status is due to exlcude out admin outright / consign and user
+          $check_is_admin_user_exists = $this->db->query("SELECT b.user_group_guid,CONCAT(b.user_id,' - ',d.supplier_name ,' - ',c.user_group_name,'\n') AS concat_user_info FROM lite_b2b.set_supplier_user_relationship a
           INNER JOIN lite_b2b.set_user b
           ON a.user_guid = b.user_guid
           AND a.customer_guid = b.acc_guid
           INNER JOIN lite_b2b.set_user_group c
           ON b.user_group_guid = c.user_group_guid
           AND c.admin_active = '1'
-          AND c.group_info_status = '1'
+          INNER JOIN lite_b2b.set_supplier d
+          ON a.supplier_guid = d.supplier_guid
           WHERE a.supplier_guid = '$user_mapping_supplier_guid' 
           AND a.customer_guid = '$customer_guid'
+          AND a.user_guid = '$create_user_guid'
+          AND c.group_info_status NOT IN ('1','4','5')
           GROUP BY b.user_guid,b.acc_guid")->result_array();
-    
+          
           if(count($check_is_admin_user_exists) > 0 )
           {
             $user_details_admin = implode(",",array_filter(array_column($check_is_admin_user_exists,'user_id')));
@@ -4219,7 +4234,7 @@ class registration_new extends CI_Controller
         die;
       }
 
-      $check_user_info = $this->db->query("SELECT b.supplier_guid,c.supplier_name FROM lite_b2b.set_user a 
+      $check_user_info = $this->db->query("SELECT a.user_guid,b.supplier_guid,c.supplier_name FROM lite_b2b.set_user a 
       INNER JOIN lite_b2b.set_supplier_user_relationship b
       ON a.user_guid = b.user_guid
       AND a.acc_guid = b.customer_guid
@@ -4233,19 +4248,24 @@ class registration_new extends CI_Controller
         foreach($check_user_info->result() as $row)
         {
           $user_mapping_supplier_guid = $row->supplier_guid;
+          $create_user_guid = $row->user_guid;
   
-          $check_is_admin_user_exists = $this->db->query("SELECT b.user_group_guid,b.user_id FROM lite_b2b.set_supplier_user_relationship a
+          // why need check group_info_status is due to exlcude out admin outright / consign and user
+          $check_is_admin_user_exists = $this->db->query("SELECT b.user_group_guid,CONCAT(b.user_id,' - ',d.supplier_name ,' - ',c.user_group_name,'\n') AS concat_user_info FROM lite_b2b.set_supplier_user_relationship a
           INNER JOIN lite_b2b.set_user b
           ON a.user_guid = b.user_guid
           AND a.customer_guid = b.acc_guid
           INNER JOIN lite_b2b.set_user_group c
           ON b.user_group_guid = c.user_group_guid
           AND c.admin_active = '1'
-          AND c.group_info_status = '1'
+          INNER JOIN lite_b2b.set_supplier d
+          ON a.supplier_guid = d.supplier_guid
           WHERE a.supplier_guid = '$user_mapping_supplier_guid' 
           AND a.customer_guid = '$customer_guid'
+          AND a.user_guid = '$create_user_guid'
+          AND c.group_info_status NOT IN ('1','4','5')
           GROUP BY b.user_guid,b.acc_guid")->result_array();
-    
+          
           if(count($check_is_admin_user_exists) > 0 )
           {
             $user_details_admin = implode(",",array_filter(array_column($check_is_admin_user_exists,'user_id')));

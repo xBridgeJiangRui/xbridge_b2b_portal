@@ -262,7 +262,7 @@ class b2b_grda extends CI_Controller
                     $tab['dncn_date'] = $row->dncn_date;
                     $tab['varianceamt'] = "<span class='pull-right'>" . number_format($row->varianceamt, 2) . "</span>";
                     $tab['status'] = $row->status;
-                    $tab['button'] = "<a href=" . site_url('json/b2b_grda/grda_child') . "?trans=" . $row->refno . "&loc=" . $_SESSION['grda_loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                    $tab['button'] = "<a href=" . site_url('b2b_grda/grda_child') . "?trans=" . $row->refno . "&loc=" . $_SESSION['grda_loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                     $tab['box'] = '<input type="checkbox" class="data-check" value="' . $row->refno . '">';
 
                     $data[] = $tab;
@@ -338,7 +338,7 @@ class b2b_grda extends CI_Controller
                 'file_headers' => $file_headers,
                 'virtual_path' => $virtual_path,
                 'title' => 'Goods Received Difference Advice',
-                'request_link_grda' => site_url('json/B2b_grda/grda_report?refno='.$refno),
+                'request_link_grda' => site_url('B2b_grda/grda_report?refno='.$refno),
             );
 
             $this->load->view('header');       
@@ -356,6 +356,7 @@ class b2b_grda extends CI_Controller
     {
         $refno = $_REQUEST['refno'];
         $customer_guid = $_SESSION['customer_guid'];
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
         $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
         $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
 
@@ -370,7 +371,7 @@ class b2b_grda extends CI_Controller
         $cloud_directory = $cloud_directory . $customer_guid . '/GRDA/';
 
         // check if pdf file already exist
-        if (file_exists($cloud_directory.$refno.'.pdf')) {
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
 
             $curl = curl_init();
 
@@ -403,7 +404,7 @@ class b2b_grda extends CI_Controller
         // $refno = 'KKDGR22040683';
         //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PO/main_jrxml.pdf?refno=".$refno; // po
         //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/gr_supplier_copy.pdf?refno=BLPGR22030862"; // grn
-        $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/GRDA.pdf?refno=".$refno."&customer_guid=".$customer_guid; // grda
+        $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/GRDA.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // grda
         //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_Promotion/promo_claim_inv.pdf?refno=BT1PCI19090033"; // PCI
         //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_DIncentives/display_incentive_report.pdf?refno=RBDI20010018"; // DI
         // print_r($url); die;

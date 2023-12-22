@@ -850,7 +850,7 @@ LIMIT 5 ");
                     <!-- `discheme_taxinv` -->
                   <?php } ?>
 
-                  <?php if ($this->session->userdata('customer_guid') == '1F90F5EF90DF11EA818B000D3AA2CAA9') 
+                  <?php if ($this->session->userdata('customer_guid') == 'D361F8521E1211EAAD7CC8CBB8CC0C93') 
                   {
                     $get_valid_view = $this->db->query("SELECT a.* FROM lite_b2b.set_supplier_user_relationship a
                     INNER JOIN lite_b2b.set_user b
@@ -945,7 +945,7 @@ LIMIT 5 ");
             }
             ?>
 
-            <?php if($this->session->userdata('user_group_name') == 'PANDA_TESTING_USE' || $this->session->userdata('user_group_name') == 'SUPER_ADMIN'){  ?>
+            <?php if(($this->session->userdata('user_group_name') == 'PANDA_TESTING_USE' || $this->session->userdata('user_group_name') == 'SUPER_ADMIN' || $this->session->userdata('user_group_name') == 'CUSTOMER_ADMIN_WITH_NO_ACTION_NN') && $_SESSION['customer_guid'] == '8D5B38E931FA11E79E7E33210BD612D3' ){  ?>
               <li class="treeview">
                 <a href="#">
                   <i class="fa fa-file-pdf-o"></i>
@@ -972,13 +972,13 @@ LIMIT 5 ");
                     </a>
                   </li>
 
-                  <li class="treeview">
+                  <!-- <li class="treeview">
                     <a href="<?php echo site_url('Panda_rms') . '?code=RMS_DCR' ?>">
                       <i class="fa fa-circle-o"></i>
                       <span>DC Rebate</span>
                       <span class="pull-right-container"></span>
                     </a>
-                  </li>
+                  </li> -->
 
                   <li class="treeview">
                     <a href="<?php echo site_url('Panda_rms') . '?code=RMS_TTB' ?>">
@@ -1544,7 +1544,17 @@ LIMIT 5 ");
                       </a>
                     </li>
 
-                    <?php if ($this->session->userdata('customer_guid') == '1F90F5EF90DF11EA818B000D3AA2CAA9') 
+                    <li class="treeview">
+                      <a href="<?php echo site_url('Integrator_section') ?>">
+                        <i class="fa fa-circle-o"></i>
+                        <span>Integration Supplier</span>
+                        <span class="pull-right-container">
+                          <!-- <i class="fa fa-angle-left pull-right"></i> -->
+                        </span>
+                      </a>
+                    </li>
+
+                    <?php if ($this->session->userdata('customer_guid') == 'D361F8521E1211EAAD7CC8CBB8CC0C93') 
                     {
                       ?>
                       <li class="treeview">

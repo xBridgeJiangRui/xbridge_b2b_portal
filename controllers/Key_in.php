@@ -52,8 +52,8 @@ class Key_in extends CI_Controller {
         
         if($result->num_rows() > 0)
         {
-            $interval_time = 1440;
-            $created_reset_link_time = $result->row('created_at');
+            $interval_time = 2880;
+            $created_reset_link_time = $result->row('updated_at');
             $check_time = $this->db->query("SELECT DATE_ADD('$created_reset_link_time', INTERVAL $interval_time minute) as after_time,NOW() as now");
             $check_time_after = $check_time->row('after_time');
             $now = $check_time->row('now');

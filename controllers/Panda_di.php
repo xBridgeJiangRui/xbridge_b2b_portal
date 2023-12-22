@@ -13,6 +13,7 @@ class panda_di extends CI_Controller
 
         //load the department_model
         $this->load->model('GR_model');
+        $this->jasper_ip = $this->file_config_b2b->file_path_name($this->session->userdata('customer_guid'),'web','general_doc','jasper_invoice_ip','GDJIIP');
     }
 
     public function index()
@@ -152,6 +153,13 @@ class panda_di extends CI_Controller
             $user_guid = $_SESSION['user_guid'];
             $from_module = $_SESSION['frommodule'];
 
+            if (isset($_REQUEST['view_json'])) 
+            {
+                $view_json = $_REQUEST['view_json'];
+            } else {
+                $view_json = $this->db->query("SELECT json_view_doc_btn FROM lite_b2b.acc_settings WHERE customer_guid = '$customer_guid'")->row('json_view_doc_btn');
+            }
+
             if(!in_array('!DISUPPMOV',$_SESSION['module_code']))
             {
                 
@@ -236,6 +244,8 @@ class panda_di extends CI_Controller
                 'virtual_path' => $virtual_path,
                 'title' => 'Display Incentive Tax Invoice',
                 'document_no' => $inv_refno,
+                'request_link' => site_url('panda_di/di_report?refno='.$inv_refno),
+                'view_json' => $view_json,
         //         'set_code' => $set_code,
         //         'set_admin_code' =>  $set_admin_code,
         //         'accpt_po_status' => $accpt_po_status,
@@ -508,6 +518,118 @@ class panda_di extends CI_Controller
             $this->session->set_flashdata('message', 'Session Expired! Please relogin');
             redirect('#');
         }
+    }
+
+    public function di_report()
+    {
+        $inv_refno = $_REQUEST['refno'];
+        $customer_guid = $_SESSION['customer_guid'];
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
+        $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
+        $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
+
+        if($cloud_directory == null || $cloud_directory == ''){
+            $cloud_directory = '/media/b2b-pdf/data_conversion/';
+        }
+
+        if($fileserver_url == null || $fileserver_url == ''){
+            $fileserver_url = 'https://file.xbridge.my/';
+        }
+
+        $cloud_directory = $cloud_directory . $customer_guid . '/DI/';
+
+        // check if pdf file already exist
+        if (file_exists($cloud_directory.$inv_refno.'.pdf') && (filesize($cloud_directory.$inv_refno.'.pdf') / 1024 > 2)) {
+
+            $curl = curl_init();
+
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $fileserver_url. '/b2b-pdf/data_conversion/' . $customer_guid . '/DI/' . $inv_refno.'.pdf',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                    'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+                ),
+            ));
+                
+            $response = curl_exec($curl);
+
+            curl_close($curl); 
+
+            header('Content-type:application/pdf');
+            header('Content-Disposition: inline; filename='.$inv_refno.'.pdf');
+
+            echo $response; die;
+        }
+
+        $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_DIncentives/display_incentive_report.pdf?refno=".$inv_refno."&customer_guid=".$customer_guid."&mode=".$mode; // DI
+
+        // echo $url; die;
+        
+        $check_code = $this->db->query("SELECT a.supplier_code from b2b_summary.promo_taxinv_info a where a.inv_refno = '$inv_refno' and a.customer_guid = '" . $_SESSION['customer_guid'] . "' ")->row('supplier_code');
+
+        $check_code = str_replace("/", "+-+", $check_code);
+
+        $parameter = $this->db->query("SELECT * from menu where module_link = 'panda_di'");
+        $type = $parameter->row('type');
+        $code = $check_code;
+
+        $filename = $this->db->query("SELECT REPLACE(REPLACE(REPLACE(filename_format, 'type', '$type'), 'code', '$code'), 'refno' , '$inv_refno') AS query FROM menu where module_link = 'panda_di'")->row('query');
+
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_HTTPHEADER => array(
+                'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+            ),
+        ));
+            
+        $response = curl_exec($curl);
+
+        // check pdf file directory
+        if (!file_exists($cloud_directory)) {
+            mkdir($cloud_directory, 0777, true);
+        }
+
+        // download pdf file into the cloud directory
+        file_put_contents($cloud_directory.$inv_refno.'.pdf', $response);
+
+        if(file_exists($cloud_directory.$inv_refno.'.pdf')){
+            
+            $update_data = array(
+                'exported_by'       => 'trigger_button',
+                'exported'          => 1,
+                'exported_datetime' => $this->db->query("SELECT NOW() AS current_datetime")->row('current_datetime'),
+            );
+
+            $this->db->where('refno', $inv_refno);
+            $this->db->where('customer_guid', $customer_guid);
+            $this->db->update('b2b_summary.doc_export', $update_data);
+
+        }
+
+        header('Content-type:application/pdf');
+        header('Content-Disposition: inline; filename='.$filename.'.pdf');
+        echo $response; 
+
+        curl_close($curl); 
     }
 }
 ?>

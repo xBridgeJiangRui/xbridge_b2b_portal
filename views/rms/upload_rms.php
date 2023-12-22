@@ -1,6 +1,6 @@
 <style>
 .content-wrapper{
-  min-height: 850px !important; 
+  min-height: 750px !important; 
 }
 </style>
 <!-- Content Wrapper. Contains page content -->

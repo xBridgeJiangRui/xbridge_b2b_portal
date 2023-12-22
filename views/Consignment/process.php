@@ -659,7 +659,7 @@ $(document).ready(function() {
 
     // methodd +='<div class="col-md-12">';
 
-    methodd += '<div class="col-md-6"><label>Consignment Type </label> <select class="form-control select2 fetch_half_selection" name="select_consign_type" id="select_consign_type" > <option value=""> -SELECT DATA- </option> <option value="half month"> Half Month </option> <option value="weekly"> Weekly </option> <option value="monthly"> Monthly </option> </select>';
+    methodd += '<div class="col-md-6"><label>Consignment Type </label> <select class="form-control select2 fetch_half_selection" name="select_consign_type" id="select_consign_type" > <option value=""> -SELECT DATA- </option> <option value="half month"> Half Month </option> <option value="weekly"> Weekly </option> <option value="monthly"> Monthly </option> <option value="reflow"> Reflow - No Need Send Email </option> </select>';
 
     methodd += '<label>Retailer Name </label> <select class="form-control fetch_half_selection" name="select_retailer" id="select_retailer" > <option value=""> -SELECT DATA- </option><?php foreach($retailer->result() as $row) { ?> <option value="<?php echo $row->acc_guid?>"><?php echo addslashes($row->acc_name)?>  </option> <?php } ?></select> </div>';
 

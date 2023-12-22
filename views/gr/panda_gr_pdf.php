@@ -739,7 +739,7 @@
           </div>
         </div>
       <div class="box-body">
-        <?php if(in_array('IAVAa',$this->session->userdata('module_code')))
+        <?php if($view_json == '1')
         {
           ?>
           <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
@@ -752,7 +752,6 @@
         else
         {
           ?>
-          <div class="col-md-12">
                   <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
 
                   <?php 
@@ -779,7 +778,6 @@
                   <?php } ?>
                       
                   </div>
-          </div>
           <?php
         }
         ?>
@@ -802,7 +800,7 @@
         </div>
       <div class="box-body">
 
-        <?php if(in_array('IAVAa',$this->session->userdata('module_code')))
+        <?php if($view_json == '1')
         {
           ?>
           <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
@@ -815,8 +813,7 @@
         else
         {
           ?>
-          <div class="col-md-12">
-                  <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
+          <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
 
 
                     <?php 
@@ -840,7 +837,6 @@
 
               <?php } ?>
                       
-                  </div>
           </div>
           <?php
         }

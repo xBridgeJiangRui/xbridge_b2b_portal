@@ -120,6 +120,13 @@ WHERE trans_type IN ('PCNAMT' , 'PDNAMT') and  customer_guid = '".$_SESSION['cus
             $customer_guid = $_SESSION['customer_guid'];
             $user_guid = $_SESSION['user_guid'];
             $from_module = $_SESSION['frommodule'];
+
+            if (isset($_REQUEST['view_json'])) 
+            {
+                $view_json = $_REQUEST['view_json'];
+            } else {
+                $view_json = $this->db->query("SELECT json_view_doc_btn FROM lite_b2b.acc_settings WHERE customer_guid = '$customer_guid'")->row('json_view_doc_btn');
+            }
             
             $check_scode = $this->db->query("SELECT code from b2b_summary.cndn_amt where refno = '$refno' and customer_guid = '".$_SESSION['customer_guid']."'")->row('code');
             $check_scode = str_replace("/","+-+",$check_scode);
@@ -164,6 +171,8 @@ WHERE trans_type IN ('PCNAMT' , 'PDNAMT') and  customer_guid = '".$_SESSION['cus
                 'file_headers' => $file_headers,
                 'virtual_path' => $virtual_path,
                 'title' => 'Promo DN/CN',
+                'request_link_pdncn' => site_url('panda_pdncn/pdncn_report?refno='.$refno),
+                'view_json' => $view_json,
             );
 
             $this->load->view('header');       
@@ -346,6 +355,125 @@ WHERE trans_type IN ('PCNAMT' , 'PDNAMT') and  customer_guid = '".$_SESSION['cus
         }
     }
 
+    public function pdncn_report()
+    {
+        $get_status = $this->db->query("SELECT `status` FROM lite_b2b.jasper_server WHERE isactive = '1'")->row('status');
+
+        if($get_status == '0')
+        {
+            print_r('Report Under Maintenance.'); 
+            die;
+        }
+        
+        $refno = $_REQUEST['refno'];
+        $customer_guid = $_SESSION['customer_guid'];
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
+        $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
+        $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
+
+        if($cloud_directory == null || $cloud_directory == ''){
+            $cloud_directory = '/media/b2b-pdf/data_conversion/';
+        }
+
+        if($fileserver_url == null || $fileserver_url == ''){
+            $fileserver_url = 'https://file.xbridge.my/';
+        }
+
+        $cloud_directory = $cloud_directory . $customer_guid . '/PDNCN/';
+
+        // check if pdf file already exist
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
+
+            $curl = curl_init();
+
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $fileserver_url. '/b2b-pdf/data_conversion/' . $customer_guid . '/PDNCN/' . $refno.'.pdf',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                    'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+                ),
+            ));
+                
+            $response = curl_exec($curl);
+
+            curl_close($curl); 
+
+            header('Content-type:application/pdf');
+            header('Content-Disposition: inline; filename='.$refno.'.pdf');
+
+            echo $response; die;
+        }
+
+        $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PDN_PCN/main_jrxml.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode;
+        // print_r($url); die;
+        $check_code = $this->db->query("SELECT supplier_code from b2b_summary.cndn_amt_info where refno = '$refno' and customer_guid = '" . $_SESSION['customer_guid'] . "' GROUP BY refno")->row('supplier_code');
+
+        $check_code = str_replace("/", "+-+", $check_code);
+
+        $parameter = $this->db->query("SELECT * from menu where module_link = 'panda_pdncn'");
+        $type = $parameter->row('type');
+        $code = $check_code;
+
+        $filename = $this->db->query("SELECT REPLACE(REPLACE(REPLACE(filename_format, 'type', '$type'), 'code', '$code'), 'refno' , '$refno') AS query FROM menu where module_link = 'panda_pdncn'")->row('query');
+
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_HTTPHEADER => array(
+                'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+            ),
+        ));
+            
+        $response = curl_exec($curl);
+
+        // check pdf file directory
+        if (!file_exists($cloud_directory)) {
+            mkdir($cloud_directory, 0777, true);
+        }
+
+        // download pdf file into the cloud directory
+        file_put_contents($cloud_directory.$refno.'.pdf', $response);
+
+        if(file_exists($cloud_directory.$refno.'.pdf')){
+            
+            $update_data = array(
+                'exported_by'       => 'trigger_button',
+                'exported'          => 1,
+                'exported_datetime' => $this->db->query("SELECT NOW() AS current_datetime")->row('current_datetime'),
+            );
+
+            $this->db->where('refno', $refno);
+            $this->db->where('customer_guid', $customer_guid);
+            $this->db->update('b2b_summary.doc_export', $update_data);
+
+        }
+
+        header('Content-type:application/pdf');
+        header('Content-Disposition: inline; filename='.$filename.'.pdf');
+        echo $response; 
+
+        curl_close($curl); 
+
+
+    }
 
 
 }

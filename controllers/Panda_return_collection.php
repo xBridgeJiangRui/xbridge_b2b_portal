@@ -11,7 +11,7 @@ class panda_return_collection extends CI_Controller
         $this->load->library('form_validation');
         //load the department_model
         $this->load->model('GR_model');
-        $this->jasper_ip = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','jasper_invoice_ip','GDJIIP');
+        $this->jasper_ip = $this->file_config_b2b->file_path_name($this->session->userdata('customer_guid'),'web','general_doc','jasper_invoice_ip','GDJIIP');
     }
 
     public function index()
@@ -80,6 +80,114 @@ class panda_return_collection extends CI_Controller
     remember to join all back to user guid so that when they key by refno, it will check if the user is valid to query or not then will show result or not..
     */
 
+    public function return_collection_child_old()
+    {
+         if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login())
+        {
+            $this->panda->get_uri();
+            $refno = $_REQUEST['refno'];
+            $loc = $_REQUEST['loc'];
+            $check_status = '';
+            $customer_guid = $this->session->userdata("customer_guid");
+
+            if($refno == '')
+            {
+                echo 'refno hilang'; die;
+            }
+
+            $check_url = $this->db->query("SELECT rest_url from acc where acc_guid = '$customer_guid'")->row('rest_url');
+            
+            $to_shoot_url = $check_url."/childdata?table=dbnotebatch_child"."&refno=".$refno;
+             // echo $to_shoot_url;die;
+            $ch = curl_init($to_shoot_url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+            $response = curl_exec($ch);
+
+            if($response !== false) 
+            {
+                $get_child_detail = json_decode(file_get_contents($to_shoot_url), true);
+                $child_result_validation = $get_child_detail[0]['line']; 
+            }
+            else
+            {
+                $get_child_detail = array();
+                $child_result_validation = '0';
+                $this->session->set_flashdata('message', 'Connection fail at customer server. Please try again in a few minutes');
+                //$this->session->set_flashdata('warning', 'Connection fail at customer server. Child Data Not Found.'); 
+            }
+
+            if(isset($_REQUEST['edit']))
+            {
+                $hidden_text = 'number';
+                $edit_url = site_url('panda_return_collection/return_collection_child?refno='.$_REQUEST['refno'].'&loc='.$_REQUEST['loc']);
+                $hide_button = '0';
+            }
+            else
+            {
+                $hidden_text = 'hidden';
+                $edit_url = site_url('panda_return_collection/return_collection_child?refno='.$_REQUEST['refno'].'&loc='.$_REQUEST['loc'].'&edit');
+                $hide_button = '1';
+            }
+
+            //echo var_dump($response);die;
+            //echo $child_result_validation;die;
+            if($child_result_validation != '1')
+            {
+                $check_child = array(array(
+                    'line' => 'No Records Founds',
+                    'itemcode' => '',
+                    'barcode' => '',
+                    'description' => '',
+                    'packsize' => '',
+                    'um' => '',
+                    'lastcost' => '0.00',
+                    'reason' => '',
+                    'qty' => '',
+                )); 
+                $set_disabled = '1';
+                $this->session->set_flashdata('warning', 'Connection fail at customer server. Please try again in a few minutes');
+                //redirect($_SESSION['frommodule']."?loc=".$_REQUEST['loc']);
+            }
+            else
+            {
+                $check_child = $get_child_detail; 
+                $set_disabled = '0';
+            }
+
+            $set_code = $this->db->query("SELECT code,reason from  set_setting where module_name = 'RETURN_COLLECTION' order by reason asc");
+            $set_admin_code = $this->db->query("SELECT code,reason from  set_setting where module_name = 'ADMIN' order by reason asc");
+
+            //$get_current_status = $this->db->query("SELECT *,LEFT(doc_date,7) as period_code FROM b2b_summary.`dbnote_batch` WHERE batch_no = '$refno' AND customer_guid = '$customer_guid'");
+            $get_current_status = $this->db->query("SELECT dbnote_guid,`status`,LEFT(doc_date,7) as period_code,IF( STATUS NOT IN ('8','9') ,uploaded_image, '0') AS uploaded_image FROM b2b_summary.`dbnote_batch` WHERE batch_no = '$refno' AND customer_guid = '$customer_guid'");
+
+            $data = array(
+                'title' => 'Return Collection',
+                'get_child_detail' => $get_child_detail,
+                'check_child' => $check_child,
+                'hidden_text' => $hidden_text,
+                'edit_url' => $edit_url,
+                'hide_button' => $hide_button,
+                'set_code' => $set_code,
+                'set_admin_code' => $set_admin_code,
+                'get_current_status' => $get_current_status->row('status'),
+                'stock_guid' => $get_current_status->row('dbnote_guid'),
+                'uploaded_image' => isset($uploaded_image) ? $uploaded_image : '',
+                'set_disabled' => $set_disabled
+            );
+ 
+            $this->load->view('header');       
+            $this->load->view('return_collection/panda_rc_pdf',$data);
+            $this->load->view('general_modal',$data);
+            $this->load->view('footer');
+        }
+        else
+        {
+            $this->session->set_flashdata('message', 'Session Expired! Please relogin');
+            redirect('#');
+        }
+    }
+
     public function return_collection_child()
     {
         if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login())
@@ -93,7 +201,6 @@ class panda_return_collection extends CI_Controller
             $user_guid = $this->session->userdata("user_guid");
             $from_module = $_SESSION['frommodule'];
 
-            //if(in_array('IAVA',$_SESSION['module_code']))
             if(!in_array('!SUPPMOV',$_SESSION['module_code']))
             {
                 $this->db->query("REPLACE into supplier_movement select 
@@ -373,6 +480,8 @@ class panda_return_collection extends CI_Controller
             //     echo 'Variable type not found';die;
             // }
 
+            $disposition = isset($disposition) ? $disposition : '';
+
             $response = curl_exec($curl);
             header('Content-type: ' . 'application/pdf');
             header('Content-Disposition: ' .$disposition.'; filename=STRB.pdf');
@@ -389,7 +498,7 @@ class panda_return_collection extends CI_Controller
 
     }//close jasper_report_multiple_loc 
 
-    public function strb_report()
+    public function strb_report_old_nousexxxxx()
     {
         $refno = $_REQUEST['refno'];
         $customer_guid = $_SESSION['customer_guid'];
@@ -434,6 +543,125 @@ class panda_return_collection extends CI_Controller
         curl_close($curl); 
     }
 
+    public function strb_report()
+    {
+        $refno = $_REQUEST['refno'];
+        $customer_guid = $_SESSION['customer_guid'];
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
+        $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
+        $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
+
+        if($cloud_directory == null || $cloud_directory == ''){
+            $cloud_directory = '/media/b2b-pdf/data_conversion/';
+        }
+
+        if($fileserver_url == null || $fileserver_url == ''){
+            $fileserver_url = 'https://file.xbridge.my/';
+        }
+
+        $cloud_directory = $cloud_directory . $customer_guid . '/STRB/';
+
+        // check if pdf file already exist
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
+
+            $curl = curl_init();
+
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $fileserver_url. '/b2b-pdf/data_conversion/' . $customer_guid . '/STRB/' . $refno.'.pdf',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                    'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+                ),
+            ));
+                
+            $response = curl_exec($curl);
+
+            curl_close($curl); 
+
+            header('Content-type:application/pdf');
+            header('Content-Disposition: inline; filename='.$refno.'.pdf');
+
+            echo $response; die;
+        }
+
+        $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PO/Stock_Return_Batch_Json.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode;
+
+        //print_r($url); die;
+        $check_code = $this->db->query("SELECT sup_code from b2b_summary.dbnote_batch where batch_no = '$refno' and customer_guid = '" . $_SESSION['customer_guid'] . "'")->row('sup_code');
+
+        $check_code = str_replace("/", "+-+", $check_code);
+
+        $parameter = $this->db->query("SELECT * from menu where module_link = 'b2b_strb'");
+        $type = $parameter->row('type');
+        $code = $check_code;
+
+        $filename = $this->db->query("SELECT REPLACE(REPLACE(REPLACE(filename_format, 'type', '$type'), 'code', '$code'), 'refno' , '$refno') AS query FROM menu where module_link = 'b2b_strb'")->row('query');
+
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_HTTPHEADER => array(
+                'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+            ),
+        ));
+            
+        $response = curl_exec($curl);
+        $httpcode = curl_getinfo($curl,CURLINFO_HTTP_CODE);
+
+        if($httpcode < '200' || $httpcode > '200')
+        {
+            print_r($httpcode . ' : ' . curl_error($curl) . ' ' . $refno ); echo '<br>';
+            print_r('Failed to load PDF Report. Please refresh the page or contact our support.'); 
+            die;
+        }
+
+        // check pdf file directory
+        if (!file_exists($cloud_directory)) {
+            mkdir($cloud_directory, 0777, true);
+        }
+
+        // download pdf file into the cloud directory
+        file_put_contents($cloud_directory.$refno.'.pdf', $response);
+
+        if(file_exists($cloud_directory.$refno.'.pdf')){
+            
+            $update_data = array(
+                'exported_by'       => 'trigger_button',
+                'exported'          => 1,
+                'exported_datetime' => $this->db->query("SELECT NOW() AS current_datetime")->row('current_datetime'),
+            );
+
+            $this->db->where('refno', $refno);
+            $this->db->where('customer_guid', $customer_guid);
+            $this->db->update('b2b_summary.doc_export', $update_data);
+
+        }
+
+        header('Content-type:application/pdf');
+        header('Content-Disposition: inline; filename='.$filename.'.pdf');
+        echo $response; 
+
+        curl_close($curl); 
+    }
+
     public function strb_view_image()
     {
         if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != ''   && $_SESSION['user_logs'] == $this->panda->validate_login()) {
@@ -451,7 +679,7 @@ class panda_return_collection extends CI_Controller
             $period_code = $this->db->query("SELECT REPLACE(LEFT(created_at,7),'-','') as period_code FROM b2b_summary.dbnote_batch WHERE batch_no = '$refno' AND customer_guid = '$customer_guid' ")->row('period_code');
 
             $azure_container_name = $this->db->query("SELECT azure_container_name FROM lite_b2b.acc WHERE acc_guid = '$customer_guid' AND isactive = '1'")->row('azure_container_name');
-    
+
             if($azure_container_name == '' || $azure_container_name == 'null' || $azure_container_name == null)
             {
                 $data = array(
@@ -463,7 +691,7 @@ class panda_return_collection extends CI_Controller
                 exit();
             }
 
-            $azure_directory_path = $outlet . "/" . $doc_type . "/" . $period_code . "/" . $refno ."/";
+            $azure_directory_path = $outlet . "/" . $doc_type . "/" . $period_code . "/" . $refno . "/";
             //$azure_directory_path = '1017/STRB/202204/1017DNB22040004';
             //print_r($azure_directory_path); die;
 

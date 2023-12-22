@@ -106,7 +106,7 @@
             <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
                   <div style="overflow-x:auto;">
                     <table id="einvoice_header" class="tablesorter table table-striped table-bordered table-hover" style="font-size:12px;width:100%"> 
-                      <form method="post" action="<?php echo site_url('json/B2b_gr/edit_gr_header?refno='.$_REQUEST['trans'].'&loc='.$_REQUEST['loc'] ); ?>" id="form_EGRH" name="form_EGRH" >
+                      <form method="post" action="<?php echo site_url('B2b_gr/edit_gr_header?refno='.$_REQUEST['trans'].'&loc='.$_REQUEST['loc'] ); ?>" id="form_EGRH" name="form_EGRH" >
                         <thead>
                         <tr>
                           <!-- <th>Refno</th> -->
@@ -199,7 +199,7 @@
                     </table>
 
                     <table id="einvoice_display" class="tablesorter table table-striped table-bordered table-hover" style="font-size:12px;width:100%"> 
-                      <form method="post" action="<?php echo site_url('json/B2b_gr/edit_gr_header?refno='.$_REQUEST['trans'].'&loc='.$_REQUEST['loc'] ); ?>" id="form_EGRH" name="form_EGRH" >
+                      <form method="post" action="<?php echo site_url('B2b_gr/edit_gr_header?refno='.$_REQUEST['trans'].'&loc='.$_REQUEST['loc'] ); ?>" id="form_EGRH" name="form_EGRH" >
                         <thead>
                         <tr>
                           <th style="width:12%">GRN Supplier Copy</th>
@@ -409,7 +409,7 @@
                                 <?php if($row->ecn_guid != 'Pending') 
                                   {
                                 ?>
-                                <a target="_blank" href="<?php echo site_url('json/b2b_gr/view_ecn?refno='.$row->RefNo.'&transtype='.$row->transtype) ?>" class="btn btn-xs btn-warning" ><i class="glyphicon glyphicon-eye-open"></i>View E-CN</a>
+                                <a target="_blank" href="<?php echo site_url('b2b_gr/view_ecn?refno='.$row->RefNo.'&transtype='.$row->transtype) ?>" class="btn btn-xs btn-warning" ><i class="glyphicon glyphicon-eye-open"></i>View E-CN</a>
                                 <?php } ?><br>
                                 <!-- <button class="btn btn-xs btn-danger" onclick="$('#form_ECN').submit()"> -->
                                 <!--                                   <button type="button" value="<?php echo $i;?>" class="index_get btn btn-xs btn-danger" RefNo="<?php echo $row->RefNo?>" transtype="<?php echo $row->transtype;?>"  RefNo="<?php echo $row->RefNo?>" transtype="<?php echo $row->transtype;?>" >
@@ -428,7 +428,7 @@
                                 <!-- <?php if($row->ecn_guid != 'Pending') 
                                   {
                                 ?>
-                                <a target="_blank" href="<?php echo site_url('json/b2b_gr/view_ecn?refno='.$row->RefNo.'&transtype='.$row->transtype) ?>" class="btn btn-xs btn-warning" ><i class="glyphicon glyphicon-heart"></i>new method E-CN</a>
+                                <a target="_blank" href="<?php echo site_url('b2b_gr/view_ecn?refno='.$row->RefNo.'&transtype='.$row->transtype) ?>" class="btn btn-xs btn-warning" ><i class="glyphicon glyphicon-heart"></i>new method E-CN</a>
                                 <?php } ?> -->
                                 <!-- END generate e_cn -->
                           <input type="hidden" name="gr_refno" value="<?php echo $_REQUEST['trans']?>">  
@@ -529,7 +529,7 @@
         </div>
       <div class="box-body">
             <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
-              <form method="post" action="<?php echo site_url('json/b2b_gr/supplier_check?trans='); ?><?php echo $_REQUEST['trans'] ?>" id="formSBNC" name="formSBNC" >
+              <form method="post" action="<?php echo site_url('b2b_gr/supplier_check?trans='); ?><?php echo $_REQUEST['trans'] ?>" id="formSBNC" name="formSBNC" >
                  <div style="overflow-x:auto;">
                     <table id="smstable" class="tablesorter table table-striped table-bordered table-hover"> 
                         <thead>
@@ -703,12 +703,12 @@ if(strstr(strtolower($_SERVER['HTTP_USER_AGENT']), 'mobile') || strstr(strtolowe
 
 <!--   <embed src="https://docs.google.com/gview?embedded=true&url=<?php echo $check_einv_filepath; ?>&amp;embedded=true" width="100%"  style="border: none;height:20em"/>  -->
 
-    <embed src="<?php echo site_url('json/B2b_gr/fetch_e_invoice_pdf?trans=').$_REQUEST['trans']; ?>" width="100%" height="500px" style="border: none;"/> This browser does not support PDFs. Please download the PDF to view it: <a href="<?php echo $check_einv_filepath; ?>">Download PDF</a> 
+    <embed src="<?php echo site_url('B2b_gr/fetch_e_invoice_pdf?trans=').$_REQUEST['trans']; ?>" width="100%" height="500px" style="border: none;"/> This browser does not support PDFs. Please download the PDF to view it: <a href="<?php echo $check_einv_filepath; ?>">Download PDF</a> 
 
 <?php  } else { ?>
   
 <!-- <embed src="<?php echo $check_einv_filepath; ?>" width="100%" height="500px" style="border: none;"/> This browser does not support PDFs. Please download the PDF to view it: <a href="<?php echo $check_einv_filepath; ?>">Download PDF</a>  -->
-    <embed src="<?php echo site_url('json/B2b_gr/fetch_e_invoice_pdf?trans=').$_REQUEST['trans']; ?>" width="100%" height="500px" style="border: none;"/> This browser does not support PDFs. Please download the PDF to view it: <a href="<?php echo $check_einv_filepath; ?>">Download PDF</a> 
+    <embed src="<?php echo site_url('B2b_gr/fetch_e_invoice_pdf?trans=').$_REQUEST['trans']; ?>" width="100%" height="500px" style="border: none;"/> This browser does not support PDFs. Please download the PDF to view it: <a href="<?php echo $check_einv_filepath; ?>">Download PDF</a> 
 
 <?php } ?>
 
@@ -1037,7 +1037,7 @@ $(document).ready(function(){
     var e_gr_refno = $('#e_gr_refno').val();
 
     $.ajax({
-        url:"<?php echo site_url('json/B2b_gr/fetch_display_message');?>",
+        url:"<?php echo site_url('B2b_gr/fetch_display_message');?>",
         method:"POST",
         dataType: 'json',
         data:{refno:e_gr_refno},
@@ -1086,7 +1086,7 @@ $(document).ready(function(){
     var e_gr_refno = $('#e_gr_refno').val();
     //alert(e_gr_refno); die;
     $.ajax({
-        url:"<?php echo site_url('json/B2b_gr/fetch_display_message');?>",
+        url:"<?php echo site_url('B2b_gr/fetch_display_message');?>",
         method:"POST",
         dataType: 'json',
         data:{refno:e_gr_refno},

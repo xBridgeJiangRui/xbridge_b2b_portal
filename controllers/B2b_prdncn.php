@@ -16,12 +16,12 @@ class b2b_prdncn extends CI_Controller
         //load the department_model
         //$this->load->model('General_model');
         $this->load->model('Datatable_model');
-        $this->jasper_ip = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','jasper_invoice_ip','GDJIIP');
+        $this->jasper_ip = $this->file_config_b2b->file_path_name($this->session->userdata('customer_guid'),'web','general_doc','jasper_invoice_ip','GDJIIP');
     }
 
     public function index()
     {
-        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN')
+        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login())
         {   
             //print_r($_SESSION['from_other']); die;
             $setsession = array(
@@ -64,7 +64,7 @@ class b2b_prdncn extends CI_Controller
 
     public function prdncn_list()
     {
-        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN') {
+        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login()) {
             $check_loc = $_SESSION['prdncn_loc'];
             
             $hq_branch_code = $this->db->query("SELECT branch_code FROM acc_branch WHERE is_hq = '1'")->result();
@@ -77,7 +77,7 @@ class b2b_prdncn extends CI_Controller
 
             $data = array(
                 'filter_status' => $this->db->query("SELECT code, reason from set_setting where module_name = 'PRDNCN_FILTER_STATUS' order by code='' desc, code asc"),
-                'period_code' => $this->db->query("SELECT period_code from lite_b2b.period_code"),
+                'period_code' => $this->db->query("SELECT period_code from lite_b2b.list_period_code"),
                 'location_description' => $this->db->query("SELECT * FROM b2b_summary.cp_set_branch WHERE BRANCH_CODE = '$check_loc' and customer_guid = '" . $_SESSION['customer_guid'] . "'"),
             );
 
@@ -131,11 +131,15 @@ class b2b_prdncn extends CI_Controller
             if ($ref_no == '') {
                 $ref_no_in = '';
             } else {
-                $ref_no_in = " AND a.inv_refno LIKE '%" . $ref_no . "%' ";
+                $ref_no_in = " AND a.refno LIKE '%" . $ref_no . "%' ";
             }
 
             if ($status == '') {
                 $status_in = " WHERE a.type IN ('','DEBIT','CN') ";
+            } elseif ($status == 'READ') {
+                $status_in = " WHERE a.type IN ('','DEBIT','CN') AND a.`status` IN ('printed', 'viewed') ";
+            } elseif ($status == 'UNREAD') {
+                $status_in = " WHERE a.type IN ('','DEBIT','CN') AND a.`status` IN ('','NEW') ";
             } elseif ($status == 'ALL') {
                 $get_stat = $this->db->query("SELECT code from set_setting where module_name = 'PRDNCN_FILTER_STATUS'");
 
@@ -164,7 +168,7 @@ class b2b_prdncn extends CI_Controller
                 $period_code_in = " AND LEFT(a.docdate, 7) = '$period_code'";
             }
 
-            $query_count = "SELECT * FROM (SELECT 
+            $query_count = "SELECT zzz.refno FROM (SELECT 
             * 
             FROM 
             (
@@ -185,7 +189,7 @@ class b2b_prdncn extends CI_Controller
                 a.supplier_name,
                 IF(a.status = '', 'NEW', a.status) AS STATUS 
               FROM 
-                b2b_summary.dbnotemain_info a FORCE INDEX (customer_guid)
+                b2b_summary.dbnotemain_info a 
                 LEFT JOIN b2b_summary.dbnote_batch b ON a.refno = b.`b2b_dn_refno` 
                 AND a.`customer_guid` = b.`customer_guid` 
                 LEFT JOIN b2b_summary.dbnotemain c
@@ -216,7 +220,7 @@ class b2b_prdncn extends CI_Controller
                 a.supplier_name, 
                 IF(a.status = '', 'NEW', a.status) AS STATUS 
               FROM 
-                b2b_summary.cnnotemain_info a FORCE INDEX (customer_guid)
+                b2b_summary.cnnotemain_info a 
                 LEFT JOIN b2b_summary.cnnotemain c
                 ON a.refno = c.refno
                 AND a.customer_guid = c.customer_guid
@@ -227,7 +231,6 @@ class b2b_prdncn extends CI_Controller
                 $doc_daterange_in
                 $ref_no_in
                 $period_code_in 
-                LIMIT 10
             ) a
             $status_in
             ) zzz "; 
@@ -251,17 +254,14 @@ class b2b_prdncn extends CI_Controller
                 a.docdate, 
                 a.supplier_code, 
                 a.supplier_name, 
-                JSON_UNQUOTE(JSON_EXTRACT(a.`prdn_json_info`,'$.dbnotemain[0].Amount')) AS amount,
-                JSON_UNQUOTE(JSON_EXTRACT(a.`prdn_json_info`,'$.dbnotemain[0].gst_tax_sum')) AS gst_tax_sum,
-                ROUND(JSON_UNQUOTE(JSON_EXTRACT(a.`prdn_json_info`,'$.dbnotemain[0].Amount')) + JSON_UNQUOTE(JSON_EXTRACT(a.`prdn_json_info`,'$.dbnotemain[0].gst_tax_sum')), 2) AS total_incl_tax, 
-                IF(a.status = '', 'NEW', a.status) AS STATUS 
+                a.amount,
+                a.gst_tax_sum,
+                a.total_incl_tax, 
+                IF(a.status = '', 'NEW', a.status) AS `status` 
               FROM 
-                b2b_summary.dbnotemain_info a FORCE INDEX (customer_guid)
+                b2b_summary.dbnotemain_info a 
                 LEFT JOIN b2b_summary.dbnote_batch b ON a.refno = b.`b2b_dn_refno` 
                 AND a.`customer_guid` = b.`customer_guid` 
-                LEFT JOIN b2b_summary.dbnotemain c
-                ON a.refno = c.refno
-                AND a.customer_guid = c.customer_guid
               WHERE 
                 a.customer_guid = '$customer_guid' 
                 AND a.loc_group IN ($loc) 
@@ -285,15 +285,12 @@ class b2b_prdncn extends CI_Controller
                 a.docdate, 
                 a.supplier_code, 
                 a.supplier_name, 
-                JSON_UNQUOTE(JSON_EXTRACT(a.`prcn_json_info`,'$.cnnotemain[0].Amount')) AS amount,
-                JSON_UNQUOTE(JSON_EXTRACT(a.`prcn_json_info`,'$.cnnotemain[0].gst_tax_sum')) AS gst_tax_sum,
-                ROUND(JSON_UNQUOTE(JSON_EXTRACT(a.`prcn_json_info`,'$.cnnotemain[0].Amount')) + JSON_UNQUOTE(JSON_EXTRACT(a.`prcn_json_info`,'$.cnnotemain[0].gst_tax_sum')), 2) AS total_incl_tax, 
-                IF(a.status = '', 'NEW', a.status) AS STATUS 
+                a.amount,
+                a.gst_tax_sum,
+                a.total_incl_tax, 
+                IF(a.status = '', 'NEW', a.status) AS `status` 
               FROM 
-                b2b_summary.cnnotemain_info a FORCE INDEX (customer_guid)
-                LEFT JOIN b2b_summary.cnnotemain c
-                ON a.refno = c.refno
-                AND a.customer_guid = c.customer_guid
+                b2b_summary.cnnotemain_info a 
               WHERE 
                 a.customer_guid = '$customer_guid' 
                 
@@ -302,7 +299,6 @@ class b2b_prdncn extends CI_Controller
                 $doc_daterange_in
                 $ref_no_in
                 $period_code_in 
-                LIMIT 10
             ) a
             $status_in
                     
@@ -516,7 +512,7 @@ class b2b_prdncn extends CI_Controller
                 'strb_refno' => $check_strb_data->row('batch_no'),
                 'strb_docdate' => $check_strb_data->row('docdate'),
                 'valid_reupload_time' => $check_upload_doc_log->row('valid_reupload'),
-                'request_link' => site_url('B2b_prdncn/prdncn_report?refno='.$refno.'&customer_guid='.$customer_guid),
+                'request_link' => site_url('B2b_prdncn/prdncn_report?refno='.$refno.'&type='.$xtype),
             );
             // echo $filename;die;
             $customer_guid = $_SESSION['customer_guid'];        
@@ -568,10 +564,6 @@ class b2b_prdncn extends CI_Controller
 
     public function prdncn_report()
     {
-        $refno = $_REQUEST['refno'];
-        $customer_guid = $_SESSION['customer_guid'];
-        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
-
         $get_status = $this->db->query("SELECT `status` FROM lite_b2b.jasper_server WHERE isactive = '1'")->row('status');
 
         if($get_status == '0')
@@ -579,9 +571,54 @@ class b2b_prdncn extends CI_Controller
             print_r('Report Under Maintenance.'); 
             die;
         }
-
+        
+        $refno = $_REQUEST['refno'];
         $doc_type = $_REQUEST['type'];
         $customer_guid = $this->session->userdata('customer_guid');
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
+        $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
+        $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
+
+        if($cloud_directory == null || $cloud_directory == ''){
+            $cloud_directory = '/media/b2b-pdf/data_conversion/';
+        }
+
+        if($fileserver_url == null || $fileserver_url == ''){
+            $fileserver_url = 'https://file.xbridge.my/';
+        }
+
+        $cloud_directory = $cloud_directory . $customer_guid . '/' . $doc_type . '/';
+
+        // check if pdf file already exist
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
+
+            $curl = curl_init();
+
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $fileserver_url. '/b2b-pdf/data_conversion/' . $customer_guid . '/' . $doc_type . '/' . $refno.'.pdf',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                    'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+                ),
+            ));
+                
+            $response = curl_exec($curl);
+
+            curl_close($curl); 
+
+            header('Content-type:application/pdf');
+            header('Content-Disposition: inline; filename='.$refno.'.pdf');
+
+            echo $response; die;
+        }
         
         if($doc_type == 'CN')
         {
@@ -625,6 +662,28 @@ class b2b_prdncn extends CI_Controller
         ));
             
         $response = curl_exec($curl);
+
+        // check pdf file directory
+        if (!file_exists($cloud_directory)) {
+            mkdir($cloud_directory, 0777, true);
+        }
+
+        // download pdf file into the cloud directory
+        file_put_contents($cloud_directory.$refno.'.pdf', $response);
+
+        if(file_exists($cloud_directory.$refno.'.pdf')){
+            
+            $update_data = array(
+                'exported_by'       => 'trigger_button',
+                'exported'          => 1,
+                'exported_datetime' => $this->db->query("SELECT NOW() AS current_datetime")->row('current_datetime'),
+            );
+
+            $this->db->where('refno', $refno);
+            $this->db->where('customer_guid', $customer_guid);
+            $this->db->update('b2b_summary.doc_export', $update_data);
+
+        }
 
         header('Content-type:application/pdf');
         header('Content-Disposition: inline; filename='.$filename.'.pdf');
@@ -740,7 +799,8 @@ class b2b_prdncn extends CI_Controller
             if ($get_supplier_guid == '' || $get_supplier_guid == null) 
             {
                 $this->session->set_flashdata('message', 'Supplier ID Empty, Please Contact Admin.');
-                redirect('panda_prdncn/prdncn_child?trans='.$refno.'&loc='.$loc.'&type='.$doc_type);
+                // redirect('panda_prdncn/prdncn_child?trans='.$refno.'&loc='.$loc.'&type='.$doc_type);
+                redirect('panda_prdncn/prdncn_child');
             } 
 
             $path_seperator = $this->file_config_b2b->path_seperator($customer_guid,'web','general_doc','path_seperator','PS');

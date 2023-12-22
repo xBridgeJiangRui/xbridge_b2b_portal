@@ -111,7 +111,7 @@
       <div class="box-body">
         <div class="col-md-12">
                 
-              <?php if(in_array('IAVAa',$this->session->userdata('module_code')))
+              <?php if($view_json == '1')
               {
                 ?>
                 <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 

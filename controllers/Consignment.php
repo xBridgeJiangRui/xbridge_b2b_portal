@@ -1082,6 +1082,36 @@ class Consignment extends CI_Controller {
 
                 $email_template = $this->db->query("SELECT template_guid FROM lite_b2b.email_template WHERE `type` = 'CSH' AND mail_type = 'Half_consign_process' AND is_active = '1' LIMIT 1")->row('template_guid');
 
+                $this->db->query("INSERT IGNORE INTO lite_b2b.blast_email_list
+                SELECT 
+                REPLACE(UPPER(UUID()),'-','') AS UUID, c.customer_guid, '$email_template', '$statement_day', d.`user_id`, 1, NULL, '$json_param', NOW(),'$get_username', NULL, NULL
+                FROM
+                    $backend_db.`acc_trans` a 
+                    INNER JOIN lite_b2b.set_supplier_group b 
+                    ON a.`supcus_code` = b.`supplier_group_name` 
+                    AND b.`customer_guid` = '$retailer_guid' 
+                    INNER JOIN lite_b2b.`set_supplier_user_relationship` c 
+                    ON b.`supplier_group_guid` = c.`supplier_group_guid` 
+                    AND c.`customer_guid` = '$retailer_guid' 
+                    INNER JOIN lite_b2b.set_user d 
+                    ON c.`user_guid` = d.user_guid 
+                    AND isactive = 1
+                    AND d.`acc_guid` = '$retailer_guid' 
+                    AND user_id LIKE '%@%' 
+                    INNER JOIN $hub_db.`acc_trans_c2` e 
+                    ON a.trans_guid = e.trans_guid
+                WHERE date_trans BETWEEN '$date_from' 
+                    AND '$date_to' AND
+                    NOT EXISTS (
+                        SELECT * FROM lite_b2b.blast_email_list
+                        WHERE customer_guid = c.customer_guid
+                        AND template_guid = '$email_template'
+                        AND email_type = 'consign_email-$statement_day'
+                        AND email_add = d.`user_id`
+                    )
+                GROUP BY d.`user_id`;
+                ");
+
             }
             else if($select_consign_type == 'monthly')
             {
@@ -1102,42 +1132,43 @@ class Consignment extends CI_Controller {
                 $json_param = stripslashes(json_encode($array_info));
 
                 $email_template = $this->db->query("SELECT template_guid FROM lite_b2b.email_template WHERE `type` = 'CS' AND mail_type = 'consign_process' AND is_active = '1' LIMIT 1")->row('template_guid');
+
+                $this->db->query("INSERT IGNORE INTO lite_b2b.blast_email_list
+                SELECT 
+                REPLACE(UPPER(UUID()),'-','') AS UUID, c.customer_guid, '$email_template', '$statement_day', d.`user_id`, 1, NULL, '$json_param', NOW(),'$get_username', NULL, NULL
+                FROM
+                    $backend_db.`acc_trans` a 
+                    INNER JOIN lite_b2b.set_supplier_group b 
+                    ON a.`supcus_code` = b.`supplier_group_name` 
+                    AND b.`customer_guid` = '$retailer_guid' 
+                    INNER JOIN lite_b2b.`set_supplier_user_relationship` c 
+                    ON b.`supplier_group_guid` = c.`supplier_group_guid` 
+                    AND c.`customer_guid` = '$retailer_guid' 
+                    INNER JOIN lite_b2b.set_user d 
+                    ON c.`user_guid` = d.user_guid 
+                    AND isactive = 1
+                    AND d.`acc_guid` = '$retailer_guid' 
+                    AND user_id LIKE '%@%' 
+                    INNER JOIN $hub_db.`acc_trans_c2` e 
+                    ON a.trans_guid = e.trans_guid
+                WHERE date_trans BETWEEN '$date_from' 
+                    AND '$date_to' AND
+                    NOT EXISTS (
+                        SELECT * FROM lite_b2b.blast_email_list
+                        WHERE customer_guid = c.customer_guid
+                        AND template_guid = '$email_template'
+                        AND email_type = 'consign_email-$statement_day'
+                        AND email_add = d.`user_id`
+                    )
+                GROUP BY d.`user_id`;
+                ");
             }
             else
             {
                 $email_template = '';
             }
 
-            $this->db->query("INSERT IGNORE INTO lite_b2b.blast_email_list
-            SELECT 
-            REPLACE(UPPER(UUID()),'-','') AS UUID, c.customer_guid, '$email_template', '$statement_day', d.`user_id`, 0, NULL, '$json_param', NOW(),'$get_username', NULL, NULL
-            FROM
-                $backend_db.`acc_trans` a 
-                INNER JOIN lite_b2b.set_supplier_group b 
-                ON a.`supcus_code` = b.`supplier_group_name` 
-                AND b.`customer_guid` = '$retailer_guid' 
-                INNER JOIN lite_b2b.`set_supplier_user_relationship` c 
-                ON b.`supplier_group_guid` = c.`supplier_group_guid` 
-                AND c.`customer_guid` = '$retailer_guid' 
-                INNER JOIN lite_b2b.set_user d 
-                ON c.`user_guid` = d.user_guid 
-                AND isactive = 1
-                AND d.`acc_guid` = '$retailer_guid' 
-                AND user_id LIKE '%@%' 
-                INNER JOIN $hub_db.`acc_trans_c2` e 
-                ON a.trans_guid = e.trans_guid
-            WHERE date_trans BETWEEN '$date_from' 
-                AND '$date_to' AND
-                NOT EXISTS (
-                    SELECT * FROM lite_b2b.blast_email_list
-                    WHERE customer_guid = c.customer_guid
-                    AND template_guid = '$email_template'
-                    AND email_type = 'consign_email-$statement_day'
-                    AND email_add = d.`user_id`
-                )
-            GROUP BY d.`user_id`;
-            ");
-
+            
             // echo $this->db->last_query(); die;
 
             $result = array(

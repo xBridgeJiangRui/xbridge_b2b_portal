@@ -326,7 +326,7 @@ $(document).ready(function () {
 
       methodd += '<div class="clearfix"></div>';
 
-      methodd += '<div class="form-group"><label>Auto Mapping (Branch/Outlet)</label><select class="form-control" name="add_limited_location" id="add_limited_location" '+disabled+'> <option value=""> -SELECT DATA- </option> <option value="1"> YES </option> <option value="0" > NO </option> </select></div>';
+      methodd += '<div class="form-group"><label>Auto Mapping (Branch/Outlet)</label><select class="form-control" name="add_limited_location" id="add_limited_location" '+disabled+'> <option value=""> -SELECT DATA- </option> <option value="0"> YES </option> <option value="1" > NO </option> </select></div>';
 
       // methodd += '<div class="form-group"><label>Daily Notification</label><select class="form-control" name="add_notification" id="add_notification" > <option value=""> -SELECT DATA- </option> <option value="1"> YES </option> <option value="0" > NO </option> </select></div>';
 

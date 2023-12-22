@@ -160,7 +160,7 @@ input[type=file] {
 
               <div class="col-md-1"><b>Request No</b></div>
               <div class="col-md-4">
-                <input type="text" id="req_refno" name="req_refno" value="<?php echo isset($_GET['id']) ? $po_refno : '' ?>" readonly class="form-control pull-right" placeholder="NEW[]">
+                <input type="text" id="req_refno" name="req_refno" value="<?php echo isset($_GET['guid']) ? $req_refno : '' ?>" readonly class="form-control pull-right" placeholder="NEW[]">
               </div>
 
               <div class="clearfix"></div><br>
@@ -326,18 +326,19 @@ input[type=file] {
 <script>
 $(document).ready(function() {
 
-  var refno = "<?php echo isset($_GET['refno']) ? $_GET['refno'] : ''; ?>";
+  var guid = "<?php echo isset($_GET['guid']) ? $_GET['guid'] : ''; ?>";
+  var req_refno = $('#req_refno').val();
 
-  if(refno != ""){
-    $('#req_refno').val(refno);
+  if(guid != ""){
+    // $('#req_refno').val(guid);
     $('#submit_request').removeClass('hidden');
   }
 
   $(document).on('click', '#export_document', function(event){
 
-    var req_refno = $('#req_refno').val();
+    var req_guid = '<?php echo $_GET["guid"] ?>';
    
-    window.location.href = "<?php echo site_url('Archived_document/export_excel') ?>"+"?req_refno="+req_refno;
+    window.location.href = "<?php echo site_url('Archived_document/export_excel') ?>"+"?guid="+req_guid;
 
   });
 
@@ -581,7 +582,7 @@ $(document).ready(function() {
     });
   }
 
-  datatable(refno);
+  datatable(req_refno);
 
   $(document).on('click', '#edit_document', function(){
 

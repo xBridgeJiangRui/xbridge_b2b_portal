@@ -21,7 +21,7 @@ class b2b_pci extends CI_Controller
 
     public function index()
     {
-        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN')
+        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login())
         {   
             //print_r($_SESSION['from_other']); die;
             $setsession = array(
@@ -64,7 +64,7 @@ class b2b_pci extends CI_Controller
 
     public function pci_list()
     {
-        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN') {
+        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login()) {
             $check_loc = $_SESSION['pci_loc'];
             
             $hq_branch_code = $this->db->query("SELECT branch_code FROM acc_branch WHERE is_hq = '1'")->result();
@@ -220,7 +220,7 @@ class b2b_pci extends CI_Controller
             ) zzz ";
 
             $query = $this->Datatable_model->datatable_main($sql, $type, $doc);
-            //echo $this->db->last_query(); die;
+            // echo $this->db->last_query(); die;
             $fetch_data = $query->result();
             $data = array();
             if (count($fetch_data) > 0) {
@@ -241,10 +241,10 @@ class b2b_pci extends CI_Controller
                     if ($this->session->userdata('customer_guid') == '1F90F5EF90DF11EA818B000D3AA2CAA9' || $this->session->userdata('customer_guid') == '907FAFE053F011EB8099063B6ABE2862' || $this->session->userdata('customer_guid') == 'D361F8521E1211EAAD7CC8CBB8CC0C93') 
                     {
                         // bataras , Gmart , everrise
-                        $tab['button'] = "<a href=" . site_url('json/b2b_pci/pci_child') . "?trans=" . $row->inv_refno . "&loc=" . $_SESSION['pci_loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                        $tab['button'] = "<a href=" . site_url('b2b_pci/pci_child') . "?trans=" . $row->inv_refno . "&loc=" . $_SESSION['pci_loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                         $tab['box'] = '<input type="checkbox" class="data-check" value="' . $row->inv_refno . '">';
                     } else {
-                        $tab['button'] = "<a href=" . site_url('json/b2b_pci/pci_child') . "?trans=" . $row->promo_refno . "&loc=" . $_SESSION['pci_loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                        $tab['button'] = "<a href=" . site_url('b2b_pci/pci_child') . "?trans=" . $row->promo_refno . "&loc=" . $_SESSION['pci_loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                         $tab['box'] = '<input type="checkbox" class="data-check" value="' . $row->promo_refno . '">';
                     }
 
@@ -350,7 +350,7 @@ class b2b_pci extends CI_Controller
                 'file_headers' => $file_headers,
                 'virtual_path' => $virtual_path,
                 'title' => 'Promo Tax Invoice',
-                'request_link' => site_url('json/B2b_pci/pci_report?refno='.$refno),
+                'request_link' => site_url('B2b_pci/pci_report?refno='.$refno),
             );
 
             $this->load->view('header');       
@@ -368,6 +368,7 @@ class b2b_pci extends CI_Controller
     {
         $refno = $_REQUEST['refno'];
         $customer_guid = $this->session->userdata('customer_guid');
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
         $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
         $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
 
@@ -382,7 +383,7 @@ class b2b_pci extends CI_Controller
         $cloud_directory = $cloud_directory . $customer_guid . '/PCI/';
 
         // check if pdf file already exist
-        if (file_exists($cloud_directory.$refno.'.pdf')) {
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
 
             $curl = curl_init();
 
@@ -412,7 +413,7 @@ class b2b_pci extends CI_Controller
             echo $response; die;
         }
 
-        $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_Promotion/promo_claim_inv.pdf?refno=".$refno."&customer_guid=".$customer_guid; // PCI
+        $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_Promotion/promo_claim_inv.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // PCI
         //print_r($url); die;
 
         $check_refno = $this->db->query("SELECT customer_guid,pci_use_inv_refno FROM lite_b2b.acc_settings WHERE pci_use_inv_refno = '1' AND customer_guid = '".$_SESSION['customer_guid']."'")->result_array();
@@ -489,7 +490,7 @@ class b2b_pci extends CI_Controller
         header('Content-Disposition: inline; filename='.$filename.'.pdf');
         echo $response; 
 
-        curl_close($curl);  
+        curl_close($curl); 
     }
 
     public function update_document_status()

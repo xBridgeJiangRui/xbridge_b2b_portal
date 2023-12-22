@@ -18,6 +18,7 @@ class b2b_gr extends CI_Controller
         $this->load->model('General_model');
         $this->load->model('Datatable_model');
         $this->jasper_ip = $this->file_config_b2b->file_path_name($this->session->userdata('customer_guid'),'web','general_doc','jasper_invoice_ip','GDJIIP');
+		$this->api_url = '127.0.0.1/rest_b2b/index.php';
     }
 
     public function index()
@@ -281,8 +282,8 @@ class b2b_gr extends CI_Controller
                     $tab = array();
 
                     $tab['refno'] = $row->refno;
-                    $tab['grda_status'] = "<a href=" . site_url('json/b2b_grda/grda_child?trans=' . $row->grda_status . '&loc=' . $_SESSION['gr_loc']) . ">" . $row->grda_status . "</a>";
-                    $tab['po_refno'] = $row->porefno;
+                    $tab['grda_status'] = "<a href=" . site_url('b2b_grda/grda_child?trans=' . $row->grda_status . '&loc=' . $_SESSION['gr_loc']) . ">" . $row->grda_status . "</a>";
+                    $tab['porefno'] = $row->porefno;
                     $tab['loc_group'] = $row->loc_group;
                     $tab['supplier_code'] = $row->supplier_code;
                     $tab['supplier_name'] = $row->supplier_name;
@@ -297,7 +298,7 @@ class b2b_gr extends CI_Controller
                     $tab['gst_tax_sum'] = "<span class='pull-right'>" . number_format($row->gst_tax_sum, 2) . "</span>";
                     $tab['total_include_tax'] = "<span class='pull-right'>" . number_format($row->total_include_tax, 2) . "</span>";
                     $tab['status'] = $row->status;
-                    $tab['button'] = "<a href=" . site_url('json/b2b_gr/gr_child') . "?trans=" . $row->refno . "&loc=" . $_SESSION['gr_loc'] . "&accpt_gr_status=" . $row->status . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                    $tab['button'] = "<a href=" . site_url('b2b_gr/gr_child') . "?trans=" . $row->refno . "&loc=" . $_SESSION['gr_loc'] . "&accpt_gr_status=" . $row->status . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                     //$tab["button"] = "<a href=" . site_url('b2b_gr/gr_child') . "?trans=" . $row->refno . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                     $tab['box'] = '<input type="checkbox" class="data-check" value="' . $row->refno . '" grda_status="' . $row->grda_status . '" doc_status="' . $row->status . '" refno="' . $row->refno . '" invno="' . $row->invno . '">';
 
@@ -341,11 +342,14 @@ class b2b_gr extends CI_Controller
             $from_module = $_SESSION['frommodule'];
             $this->panda->get_uri();
             $database_production = 'b2b_summary';
+			$database = 'lite_b2b';
 
             $grmain_status = $this->db->query("SELECT status from $database_production.grmain where refno = '$refno'")->row('status');
             if ($grmain_status != 'CONFIRM_EINV') {
                 if (!in_array('!SUPPMOV', $_SESSION['module_code'])) {
                     $this->db->query("UPDATE b2b_summary.grmain set status = 'viewed' where status = '' and customer_guid = '" . $_SESSION['customer_guid'] . "' and refno = '$refno' ");
+                    
+                    $this->db->query("UPDATE b2b_summary.grmain_info set status = 'viewed' where status = '' and customer_guid = '" . $_SESSION['customer_guid'] . "' and refno = '$refno' ");
 
                     $this->db->query("REPLACE into supplier_movement select 
                     upper(replace(uuid(),'-','')) as movement_guid
@@ -379,6 +383,7 @@ class b2b_gr extends CI_Controller
                 , a.cross_ref
                 , IFNULL((JSON_UNQUOTE(JSON_EXTRACT(a.`gr_json_info`,'$.grmain[0].total_include_tax')) - SUM(d.`VarianceAmt`)), JSON_UNQUOTE(JSON_EXTRACT(a.`gr_json_info`,'$.grmain[0].Total')) ) AS after_amount
                 , a.gr_json_info
+                , IF(d.refno IS NULL, '0', JSON_UNQUOTE(JSON_EXTRACT(a.`gr_json_info`,'$.grmain[0].pay_by_invoice'))) AS pay_by_invoice
                 FROM b2b_summary.grmain_info AS a 
                 LEFT JOIN b2b_summary.grmain_proposed AS b 
                 ON a.refno = b.refno 
@@ -387,6 +392,8 @@ class b2b_gr extends CI_Controller
                 LEFT JOIN b2b_summary.`grmain_dncn_info` d ON a.`RefNo` = d.`RefNo` AND a.`customer_guid` = d.`customer_guid`
                 where a.refno = '$refno' and a.customer_guid = '" . $_SESSION['customer_guid'] . "'
                 GROUP BY a.refno");
+
+                $pay_by_invoice = $get_header_detail->row('pay_by_invoice');
                 
                 //-- , IF(b.DocDate IS NULL, a.`DocDate`, b.DocDate) AS DocDate
                 //                -- , IF(b.created_at IS NULL, a.`DocDate`, DATE_FORMAT(b.created_at,'%Y-%m-%d')) AS DocDate
@@ -411,21 +418,62 @@ class b2b_gr extends CI_Controller
                         $child_result_validation = count(json_decode($get_grn_child_data, true)['grchild']);
                         foreach (json_decode($get_grn_child_data, true)['grchild'] as $json)
                         {
-                            $itemcode = $json['Itemcode'];
-                            $line = $json['Line'];
-                            $barcode = $json['barcode'];
-                            $description = $json['Description'];
-                            $packsize = $json['PackSize'];
-                            $qty = $json['Qty'];
-                            $uom = $json['UM'];
-                            $unitprice = number_format($json['UnitPrice'], 4);
-                            $disc_desc = $json['Disc2Type'] . number_format($json['Disc2Value'], 2);
-                            $discamt = $json['DiscAmt'];
-                            $unit_disc_prorate = ($json['hcost_gr'] == 0) ? number_format($json['hcost_gr'], 4) : number_format($json['hcost_gr'] / $json['Qty'], 4);
-                            $unit_price_bfr_tax = ($json['hcost_gr'] == 0) ? number_format($json['NetUnitPrice'], 4) : number_format($json['TotalPrice'] - $json['hcost_gr'] / $json['Qty'], 4);
-                            $totalprice = $json['TotalPrice'];
-                            $gst_tax_amount = number_format($json['gst_tax_amount'], 4);
-                            $gst_unit_total = number_format((($json['TotalPrice'] - number_format($json['hcost_gr'], 2)) + $json['gst_tax_amount']), 2, '.', '' );
+                            if($pay_by_invoice == '1')
+                            {
+                                $itemcode = $json['Itemcode'];
+                                $line = $json['Line'];
+                                $barcode = $json['barcode'];
+                                $description = $json['Description'];
+                                $packsize = $json['PackSize'];
+                                $qty = $json['Qty'];
+                                $uom = $json['UM'];
+                                $inv_qty = $json['Inv_Qty'];
+                                $unitprice = number_format($json['UnitPrice'], 4);
+                                $disc_desc = $json['Disc2Type'] . number_format($json['Disc2Value'], 2);
+                                $discamt = $json['DiscAmt'];
+                                $unit_disc_prorate = ($json['hcost_gr'] == 0) ? number_format($json['hcost_gr'], 4) : number_format($json['hcost_gr'] / $json['Inv_Qty'], 4);
+                                $unit_price_bfr_tax = ($json['hcost_gr'] == 0) ? number_format($json['Inv_NetUnitPrice'], 4) : number_format($json['Inv_TotalPrice'] - $json['hcost_gr'] / $json['Inv_Qty'], 4);
+    
+                                $totalprice = $json['Inv_TotalPrice'];
+                                $gst_tax_amount = number_format($json['gst_tax_amount'], 4);
+                                $gst_unit_total = number_format((($json['Inv_TotalPrice'] - number_format($json['hcost_gr'], 2)) + $json['gst_tax_amount']), 2, '.', '' );
+    
+                            }
+                            else
+                            {
+                                $itemcode = $json['Itemcode'];
+                                $line = $json['Line'];
+                                $barcode = $json['barcode'];
+                                $description = $json['Description'];
+                                $packsize = $json['PackSize'];
+                                $qty = $json['Qty'];
+                                $uom = $json['UM'];
+                                $inv_qty = $json['Inv_Qty'];
+                                $unitprice = number_format($json['UnitPrice'], 4);
+                                $disc_desc = $json['Disc2Type'] . number_format($json['Disc2Value'], 2);
+                                $discamt = $json['DiscAmt'];
+                                $unit_disc_prorate = ($json['hcost_gr'] == 0) ? number_format($json['hcost_gr'], 4) : number_format($json['hcost_gr'] / $json['Qty'], 4);
+                                $unit_price_bfr_tax = ($json['hcost_gr'] == 0) ? number_format($json['NetUnitPrice'], 4) : number_format($json['TotalPrice'] - $json['hcost_gr'] / $json['Qty'], 4);
+                                $totalprice = $json['TotalPrice'];
+                                $gst_tax_amount = number_format($json['gst_tax_amount'], 4);
+                                $gst_unit_total = number_format((($json['TotalPrice'] - number_format($json['hcost_gr'], 2)) + $json['gst_tax_amount']), 2, '.', '' );
+                            }
+                            
+                            // $itemcode = $json['Itemcode'];
+                            // $line = $json['Line'];
+                            // $barcode = $json['barcode'];
+                            // $description = $json['Description'];
+                            // $packsize = $json['PackSize'];
+                            // $qty = $json['Qty'];
+                            // $uom = $json['UM'];
+                            // $unitprice = number_format($json['UnitPrice'], 4);
+                            // $disc_desc = $json['Disc2Type'] . number_format($json['Disc2Value'], 2);
+                            // $discamt = $json['DiscAmt'];
+                            // $unit_disc_prorate = ($json['hcost_gr'] == 0) ? number_format($json['hcost_gr'], 4) : number_format($json['hcost_gr'] / $json['Qty'], 4);
+                            // $unit_price_bfr_tax = ($json['hcost_gr'] == 0) ? number_format($json['NetUnitPrice'], 4) : number_format($json['TotalPrice'] - $json['hcost_gr'] / $json['Qty'], 4);
+                            // $totalprice = $json['TotalPrice'];
+                            // $gst_tax_amount = number_format($json['gst_tax_amount'], 4);
+                            // $gst_unit_total = number_format((($json['TotalPrice'] - number_format($json['hcost_gr'], 2)) + $json['gst_tax_amount']), 2, '.', '' );
                             
                             // if($user_guid == '7BA14C79BDDB11EBB0C4000D3AA2838A')
                             // {
@@ -482,6 +530,7 @@ class b2b_gr extends CI_Controller
                     //     $child_result_validation = $get_child_detail[0]['line'];
                     //     // print_r($child_result_validation);die;
                     // }
+                    
                 } else {
                     $get_child_detail = array();
                     $child_result_validation = '0';
@@ -597,10 +646,10 @@ class b2b_gr extends CI_Controller
 
             if (isset($_REQUEST['edit'])) {
                 $hidden_text = 'text';
-                $edit_header_url = site_url('json/b2b_gr/gr_child?trans=' . $_REQUEST['trans'] . '&loc=' . $_REQUEST['loc']);
+                $edit_header_url = site_url('b2b_gr/gr_child?trans=' . $_REQUEST['trans'] . '&loc=' . $_REQUEST['loc']);
             } else {
                 $hidden_text = 'hidden';
-                $edit_header_url = site_url('json/b2b_gr/gr_child?trans=' . $_REQUEST['trans'] . '&loc=' . $_REQUEST['loc'] . '&edit');
+                $edit_header_url = site_url('b2b_gr/gr_child?trans=' . $_REQUEST['trans'] . '&loc=' . $_REQUEST['loc'] . '&edit');
             }
             
             if ($get_DN_detail->num_rows() >= '1') {
@@ -682,13 +731,17 @@ class b2b_gr extends CI_Controller
                 $gr_back_date = $this->db->query("SELECT CURDATE() as curdate")->row('curdate');
             }
 
-            $check_inv_no = $get_header_detail->row('InvNo');
+            $check_inv_no = addslashes($get_header_detail->row('InvNo'));
             $check_code = $get_header_detail->row('supplier_code');
 
             $check_inv_no = $this->db->query("SELECT refno FROM b2b_summary.grmain_info WHERE customer_guid = '$customer_guid' AND invno = '$check_inv_no' AND `supplier_code` = '$check_code' ");
 
+            // $duplicate_refno = implode(",",array_filter(array_column($check_inv_no->result_array(),'refno')));
+            // $exisiting_refno = str_replace($refno,'',$duplicate_refno);
+            // $check_inv_no_refno = ($exisiting_refno[0] === ',') ? '' . substr($exisiting_refno, 1) : $exisiting_refno;
+
             if ($check_inv_no->num_rows() > 1) {
-                $this->session->set_flashdata('warning', 'Please check duplicate Supplier Invoice No.');
+                $this->session->set_flashdata('warning', 'Please check duplicate Supplier Invoice No');
             }
 
             $data = array(
@@ -731,8 +784,9 @@ class b2b_gr extends CI_Controller
                 'file_supplier_guid' => $file_supplier_guid,
                 'file_sup_code' => $file_sup_code,
                 'file_refno' => $refno,
-                'request_link_gr' => site_url('json/B2b_gr/gr_report?refno='.$refno),
-                'request_link_grda' => site_url('json/B2b_gr/grda_report?refno='.$refno),
+                'request_link_gr' => site_url('B2b_gr/gr_report?refno='.$refno),
+                'request_link_grda' => site_url('B2b_gr/grda_report?refno='.$refno),
+                'pay_by_invoice' => $pay_by_invoice,
             );
 
 
@@ -985,8 +1039,8 @@ class b2b_gr extends CI_Controller
                 'grda_file_headers' => $grda_file_headers,
                 'grda_virtual_path' => $grda_virtual_path,
                 'accpt_gr_status' => $accpt_gr_status,
-                'request_link_gr' => site_url('json/B2b_gr/gr_report?refno='.$refno),
-                'request_link_grda' => site_url('json/B2b_gr/grda_report?refno='.$refno),
+                'request_link_gr' => site_url('B2b_gr/gr_report?refno='.$refno),
+                'request_link_grda' => site_url('B2b_gr/grda_report?refno='.$refno),
             );
 
 
@@ -1244,6 +1298,7 @@ class b2b_gr extends CI_Controller
 
         $refno = $_REQUEST['refno'];
         $customer_guid = $_SESSION['customer_guid'];
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
         $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
         $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
 
@@ -1258,7 +1313,7 @@ class b2b_gr extends CI_Controller
         $cloud_directory = $cloud_directory . $customer_guid . '/GR/';
 
         // check if pdf file already exist
-        if (file_exists($cloud_directory.$refno.'.pdf')) {
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
 
             $curl = curl_init();
 
@@ -1290,13 +1345,13 @@ class b2b_gr extends CI_Controller
 
         if($customer_guid == '599348EDCB2F11EA9A81000C29C6CEB2')
         {
-            $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/gr_supplier_copy.pdf?refno=".$refno."&customer_guid=".$customer_guid; // grn
+            $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/gr_supplier_copy.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // grn
 
             // echo $url; die;
         }
         else
         {
-            $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/gr_supplier_copy.pdf?refno=".$refno."&customer_guid=".$customer_guid; // grn
+            $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/gr_supplier_copy.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // grn
         }
 
         //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PO/main_jrxml.pdf?refno=".$refno; // po
@@ -1378,6 +1433,7 @@ class b2b_gr extends CI_Controller
 
         $refno = $_REQUEST['refno'];
         $customer_guid = $_SESSION['customer_guid'];
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
         $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
         $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
 
@@ -1424,13 +1480,13 @@ class b2b_gr extends CI_Controller
 
         if($customer_guid == '599348EDCB2F11EA9A81000C29C6CEB2')
         {
-            $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/GRDA_COPY.pdf?refno=".$refno."&customer_guid=".$customer_guid; // grda
+            $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/GRDA_COPY.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // grda
 
             // echo $url; die;
         }
         else
         {
-            $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/GRDA.pdf?refno=".$refno."&customer_guid=".$customer_guid; // grda
+            $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/GRDA.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // grda
         }
         
         //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PO/main_jrxml.pdf?refno=".$refno; // po
@@ -1828,7 +1884,7 @@ class b2b_gr extends CI_Controller
             $gr_info = $this->db->query("SELECT 
             a.`loc_group` as Location
             , a.`supplier_name`
-            , a.`supplier_code`
+            , a.`supplier_code` as Code
             , ifnull(b.invno,a.`Invno`) as Invno
             FROM b2b_summary.grmain_info AS a 
             LEFT JOIN b2b_summary.grmain_proposed AS b 
@@ -2136,7 +2192,7 @@ class b2b_gr extends CI_Controller
                 $end = strtotime($curdate);
                 $mins = ($end - $start) / 60;
     
-                if($mins >= '20')
+                if($mins >= '5')
                 {
                     $reupdate_process_log = $this->db->query("UPDATE lite_b2b.einv_process_log SET `status` = '3',created_at = NOW() WHERE refno = '$e_gr_refno' AND customer_guid = '$customer_guid'");
                 }
@@ -2188,7 +2244,8 @@ class b2b_gr extends CI_Controller
             $H_total_excl_tax = $grmain->row('total_include_tax');
             $H_tax_amount = $grmain->row('gst_tax_sum');
             $H_total_incl_tax = $grmain->row('total_include_tax');
-            $H_supplier_code = $grmain->row('Code');
+            $H_supplier_code = $grmain->row('supplier_code');
+            $H_location = $grmain->row('loc_group');
 
             ##check b2b invno
             $check_if_exists_einv = $this->db->query("SELECT * FROM b2b_summary.einv_main WHERE refno != '$H_refno' AND customer_guid = '$customer_guid' AND einvno = '$H_invno'");
@@ -2223,19 +2280,140 @@ class b2b_gr extends CI_Controller
             $e_document_copy = $acc_setting_query->row('e_document_copy');
             $check_inv_status = $acc_setting_query->row('check_inv_status');
     
+            // if($check_inv_status == 'Yes')
+            // {
+            //     $store_refno = '';
+            //     $public_ip_check = $this->db->query("SELECT public_ip from lite_b2b.acc where acc_guid = '$customer_guid'")->row('public_ip');
+            //     // $check_url = "http://202.75.55.22/rest_api/index.php/return_json";
+            //     $to_check_duplicate = $public_ip_check . "/rest_api/index.php/panda2finance/check_duplicate";
+            //     //echo $to_check_duplicate ;die;
+    
+            //     $data_check_einv = array(
+            //         "refno" => $H_refno,
+            //         "doctype"  => 'GRN',
+            //         "code"  => $H_supplier_code,
+            //         "invno"  => $H_invno,
+            //     );
+            //     //print_r(json_encode($data_check_einv)); die;
+            //     $data_encode = json_encode($data_check_einv);
+
+            //     $cuser_name = 'ADMIN';
+            //     $cuser_pass = '1234';
+    
+            //     $ch = curl_init($to_check_duplicate);
+            //     // curl_setopt($ch, CURLOPT_HTTPHEADER, array("X-API-KEY: " . "CODEX1234" ));
+            //     curl_setopt($ch, CURLOPT_TIMEOUT, 0);
+            //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            //     curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+            //     curl_setopt($ch, CURLOPT_HTTPHEADER, array("X-Api-KEY: 123456"));
+            //     curl_setopt($ch, CURLOPT_USERPWD, "$cuser_name:$cuser_pass");
+            //     curl_setopt($ch, CURLOPT_POST, 1);
+            //     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data_check_einv));
+            //     //curl_setopt($ch, CURLOPT_SSL_VERIFYPEER , false);
+            //     $result = curl_exec($ch);
+            //     $output_check_inv = json_decode($result);
+            //     $array_output = json_decode(json_encode($output_check_inv->result), true);
+            //     // $status = json_encode($output);
+            //     //print_r($result);die;
+            //     //print_r($output);die;
+            //     //echo $result;die;
+            //     curl_close($ch);
+                
+            //     if(isset($output_check_inv->status))
+            //     {
+            //         if($output_check_inv->status == false)
+            //         {
+            //             foreach($array_output as $row)
+            //             {
+            //                 //print_r($row['refno']); die;
+            //                 $store_refno .= $row['refno'] . ',';
+            //             }
+            //             $store_refno = rtrim($store_refno, ',');
+            //             $error = 99;
+            //             $add_msg = 'Duplicate Inv Number ' . $store_refno;
+            //         }
+            //     }
+            //     else
+            //     {
+            //         $insert_shoot_hq = $this->db->query("INSERT INTO lite_b2b.check_duplicate_log (customer_guid,refno,data_array,process_status,created_at,created_by) VALUES('$customer_guid','$H_refno','$data_encode','Retry',NOW(),'$user_guid')");
+            //         // shoot 1 more time
+            //         $store_refno = '';
+            //         // $public_ip_check = $this->db->query("SELECT public_ip from lite_b2b.acc where acc_guid = '$customer_guid'")->row('public_ip');
+            //         // // $check_url = "http://202.75.55.22/rest_api/index.php/return_json";
+            //         // $to_check_duplicate = $public_ip_check . "/rest_api/index.php/panda2finance/check_duplicate";
+            //         // //echo $to_check_duplicate ;die;
+        
+            //         // $data_check_einv = array(
+            //         //     "refno" => $H_refno,
+            //         //     "doctype"  => 'GRN',
+            //         //     "code"  => $H_supplier_code,
+            //         //     "invno"  => $H_invno,
+            //         // );
+            //         // //print_r(json_encode($data_check_einv)); die;
+        
+            //         // $cuser_name = 'ADMIN';
+            //         // $cuser_pass = '1234';
+        
+            //         $ch = curl_init($to_check_duplicate);
+            //         // curl_setopt($ch, CURLOPT_HTTPHEADER, array("X-API-KEY: " . "CODEX1234" ));
+            //         curl_setopt($ch, CURLOPT_TIMEOUT, 0);
+            //         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            //         curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+            //         curl_setopt($ch, CURLOPT_HTTPHEADER, array("X-Api-KEY: 123456"));
+            //         curl_setopt($ch, CURLOPT_USERPWD, "$cuser_name:$cuser_pass");
+            //         curl_setopt($ch, CURLOPT_POST, 1);
+            //         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data_check_einv));
+            //         //curl_setopt($ch, CURLOPT_SSL_VERIFYPEER , false);
+            //         $result = curl_exec($ch);
+            //         $output_check_inv_v2 = json_decode($result);
+            //         $array_output_v2 = json_decode(json_encode($output_check_inv_v2->result), true);
+            //         // $status = json_encode($output);
+            //         //print_r($result);die;
+            //         //print_r($output);die;
+            //         //echo $result;die;
+            //         curl_close($ch);
+                    
+            //         if(isset($output_check_inv_v2->status))
+            //         {
+            //             $insert_shoot_hq = $this->db->query("INSERT INTO lite_b2b.check_duplicate_log (customer_guid,refno,data_array,process_status,created_at,created_by) VALUES('$customer_guid','$H_refno','$data_encode','Retry_Success',NOW(),'$user_guid')");
+
+            //             if($output_check_inv_v2->status == false)
+            //             {
+            //                 foreach($array_output_v2 as $row)
+            //                 {
+            //                     //print_r($row['refno']); die;
+            //                     $store_refno .= $row['refno'] . ',';
+            //                 }
+            //                 $store_refno = rtrim($store_refno, ',');
+            //                 $error = 99;
+            //                 $add_msg = 'Duplicate Inv Number ' . $store_refno;
+            //             }
+            //         }
+            //         else
+            //         {
+            //             $error = 99;
+            //             $add_msg = 'Process Checking Einv Invalid';
+            //             $insert_shoot_hq = $this->db->query("INSERT INTO lite_b2b.check_duplicate_log (customer_guid,refno,data_array,process_status,created_at,created_by) VALUES('$customer_guid','$H_refno','$data_encode','Retry_Failed',NOW(),'$user_guid')");
+            //         }
+            //     }
+            // }
+
             if($check_inv_status == 'Yes')
             {
                 $store_refno = '';
-                $public_ip_check = $this->db->query("SELECT public_ip from lite_b2b.acc where acc_guid = '$customer_guid'")->row('public_ip');
-                // $check_url = "http://202.75.55.22/rest_api/index.php/return_json";
-                $to_check_duplicate = $public_ip_check . "/rest_api/index.php/panda2finance/check_duplicate";
-                //echo $to_check_duplicate ;die;
+
+                $url = $this->api_url;
+                $to_check_duplicate = $url."/E_invoice_validate/grn_einv_checking";
+                // $to_check_duplicate = "20.212.51.33/rest_b2b/index.php/E_invoice_validate/grn_einv_checking";
+                // echo $to_check_duplicate ;die;
     
                 $data_check_einv = array(
+                    "customer_guid" => $customer_guid,
                     "refno" => $H_refno,
                     "doctype"  => 'GRN',
                     "code"  => $H_supplier_code,
                     "invno"  => $H_invno,
+                    "loc_group" => $H_location,
                 );
                 //print_r(json_encode($data_check_einv)); die;
     
@@ -2257,7 +2435,7 @@ class b2b_gr extends CI_Controller
                 $array_output = json_decode(json_encode($output_check_inv->result), true);
                 // $status = json_encode($output);
                 //print_r($result);die;
-                //print_r($output);die;
+                // print_r($array_output);die;
                 //echo $result;die;
                 curl_close($ch);
                 
@@ -2272,7 +2450,7 @@ class b2b_gr extends CI_Controller
                         }
                         $store_refno = rtrim($store_refno, ',');
                         $error = 99;
-                        $add_msg = 'Duplicate Inv Number ' . $store_refno;
+                        $add_msg = $output_check_inv->message. ' ' . $store_refno;
                     }
                 }
                 else
@@ -2474,6 +2652,8 @@ class b2b_gr extends CI_Controller
                             } //close json foreach child
     
                         } //close else for checking einv_main got update or insert or not
+
+                        $e_gr_refno = isset($e_gr_refno) ? $e_gr_refno : '';
     
                         $update_process_log = $this->db->query("UPDATE lite_b2b.einv_process_log SET `status` = '2',updated_at = NOW() WHERE refno = '$e_gr_refno' AND customer_guid = '$customer_guid'");
                     }

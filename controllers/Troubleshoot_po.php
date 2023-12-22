@@ -34,7 +34,7 @@ class Troubleshoot_po extends CI_Controller
                     'period_code' => $this->db->query("SELECT period_code from lite_b2b.period_code"),
                     'location' => $this->db->query("SELECT DISTINCT branch_code FROM acc_branch AS a INNER JOIN acc_concept AS b ON b.`concept_guid` = a.`concept_guid`  WHERE branch_code IN  (".$_SESSION['query_loc'].") and b.`acc_guid` = '".$_SESSION['customer_guid']."' order by branch_code asc "),
                     // 'supcus' => $this->db->query("SELECT * FROM b2b_summary.supcus WHERE Type = 'S' "),
-                    'acc' => $this->db->query("SELECT * FROM acc WHERE isactive = 1")
+                    'acc' => $this->db->query("SELECT * FROM acc WHERE isactive = 1 order by acc_name asc")
                 );  
          // print_r($data);die;
 
@@ -210,7 +210,7 @@ class Troubleshoot_po extends CI_Controller
         }//close expiry_from
         else
         {
-            $expiry_from = "AND a.DueDate BETWEEN '$expiry_from' AND '$expiry_to'";
+            $expiry_from = "AND a.expiry_date BETWEEN '$expiry_from' AND '$expiry_to'";
         }//close else expiry_from
 
 
@@ -228,12 +228,19 @@ class Troubleshoot_po extends CI_Controller
         {
             $po_status = "WHERE a.status = a.status";
         }//close po_status
+        elseif ($po_status == 'pacc') 
+        {
+            $po_status = "WHERE a.status IN ('', 'printed', 'viewed')";
+        }
         else
         {
             $po_status = "WHERE a.status = '$po_status'";
         }//close else po_status
 
-        $sql = "SELECT a.RefNo,b.gr_refno,a.loc_group,a.SCode,a.SName,a.PODate,a.DeliverDate,a.DueDate,a.Total,a.gst_tax_sum,a.total_include_tax,a.status,c.portal_description,a.expiry_date FROM b2b_summary.pomain a LEFT JOIN b2b_summary.po_grn_inv b ON a.RefNo = b.po_refno AND a.customer_guid = b.customer_guid LEFT JOIN status_setting c ON a.rejected_remark = c.code AND c.type = 'reject_po' $po_status AND a.customer_guid = '$customer_guid' AND a.SCode IN($vendor_code) $po_num $daterange $expiry_from $period_code ";
+        $sql = "SELECT a.RefNo,b.gr_refno,a.loc_group,a.SCode,a.SName,a.PODate,a.DeliverDate,a.DueDate,a.Total,a.gst_tax_sum,a.total_include_tax,c.portal_description,a.expiry_date,CASE 
+        WHEN a.status = '' THEN 'New' 
+        ELSE a.status 
+        END AS status FROM b2b_summary.pomain a LEFT JOIN b2b_summary.po_grn_inv b ON a.RefNo = b.po_refno AND a.customer_guid = b.customer_guid LEFT JOIN status_setting c ON a.rejected_remark = c.code AND c.type = 'reject_po' $po_status AND a.customer_guid = '$customer_guid' AND a.SCode IN($vendor_code) $po_num $daterange $expiry_from $period_code ";
 
         $query = "SELECT * FROM (".$sql.") a ".$like_first_query.$like_second_query.$order_query.$limit_query;
 

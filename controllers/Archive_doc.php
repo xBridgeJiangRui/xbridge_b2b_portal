@@ -61,6 +61,7 @@ class Archive_doc extends CI_Controller {
     $refno = $this->input->post('refno');
     $customer_guid = $_SESSION['customer_guid'];
     $query_loc = $_SESSION['query_loc'];
+    // print_r($doc_type); die;
 
     $get_customer = $this->db->query("SELECT SUBSTRING(file_path,10,20) AS file_path, rest_url FROM lite_b2b.acc WHERE acc_guid = '$customer_guid' AND isactive = '1'");
 
@@ -77,141 +78,177 @@ class Archive_doc extends CI_Controller {
         exit();
     }
 
-    // if($doc_type == 'pomain')
-    // {
-    //     $type = 'PO';
-    //     $column_scode = 'SCode';
-    //     $module_link = 'panda_po_2';
-    // }
-    // else if($doc_type == 'grmain')
-    // {
-    //     $type = 'GRN';
-    //     $column_scode = 'Code';
-    //     $module_link = 'panda_gr';
-    // }
-    // else if($doc_type == 'grmain_dncn')
-    // {
-    //     $type = 'GRDA';
-    //     $column_scode = 'GRDA_DATA';
-    //     $module_link = 'panda_grda';
-    // }
-    // if($doc_type == 'dbnotemain')
-    // {
-    //     $type = 'PRDN';
-    //     $column_scode = 'Code';
-    //     $module_link = 'panda_prdncn';
-    // }
-    // else if($doc_type == 'cnnotemain')
-    // {
-    //     $type = 'PRCN';
-    //     $column_scode = 'Code';
-    //     $module_link = 'panda_pdncn';
-    // }
-    // else if($doc_type == 'pdn_amt')
-    // {
-    //     $doc_type = 'cndn_amt';
-    //     $type = 'PDN';
-    //     $column_scode = 'code';
-    //     $module_link = 'panda_prdn';
-    // }
-    // else if($doc_type == 'pcn_amt')
-    // {
-    //     $doc_type = 'cndn_amt';
-    //     $type = 'PCN';
-    //     $column_scode = 'code';
-    //     $module_link = 'panda_prcn';
-    // }
-    // else if($doc_type == 'pci')
-    // {
-    //     $type = 'PROMO';
-    //     $column_scode = 'sup_code';
-    //     $module_link = 'panda_pci';
-    // }
-    // else if($doc_type == 'discheme_taxinv')
-    // {
-    //     $type = 'DISCHEME';
-    //     $column_scode = 'sup_code';
-    //     $module_link = 'panda_di';
-    // }
-    // else if($doc_type == 'other_doc')
-    // {
-    //     $type = '';
-    //     $column_scode = 'supcode';
-    // }
-    // else
-    // {
-    //     $data = array(
-    //         'para1' => 'false',
-    //         'msg' => 'Invalid Document Type',
-    //     );
+    if($doc_type == 'pomain')
+    {
+        $type = 'PO';
 
-    //     echo json_encode($data);
-    //     exit();
-    // }
-    
-    // if($doc_type == 'pomain')
-    // {
-    //   if(($refno == '') || ($refno == null) || ($refno == 'null'))
-    //   {
-    //     $filter = '';
-    //   }
-    //   else
-    //   {
-    //     $filter = "AND refno = '$refno'";
-    //   }
+        if(($refno == '') || ($refno == null) || ($refno == 'null'))
+        {
+            $filter = '';
+        }
+        else
+        {
+            $filter = "WHERE refno LIKE '%$refno%'";
+        }
 
-    //   if(in_array('IAVA',$_SESSION['module_code']))
-    //   {
-    //     $query_data = $this->db->query("SELECT refno AS refno_val,podate AS document_date,`status`,location AS loc_group ,scode AS supplier_code,sname AS supplier_name,total,hide_at,hide_by,hide_remark FROM b2b_amend.`pomain` WHERE customer_guid = '$customer_guid' $filter ORDER BY hide_at DESC");
-    //   }
-    //   else
-    //   {
-    //     $query_data = $this->db->query("SELECT refno AS refno_val,podate AS document_date,`status`,location AS loc_group ,scode AS supplier_code,sname AS supplier_name,total,hide_at,hide_by,hide_remark FROM b2b_amend.`pomain` WHERE customer_guid = '$customer_guid' AND location IN ($query_loc) and scode IN (".$_SESSION['query_supcode'].") $filter ORDER BY hide_at DESC");
-    //   }
-    // }
-    // else if($doc_type == 'grmain')
-    // {
-    //   if(($refno == '') || ($refno == null) || ($refno == 'null'))
-    //   {
-    //     $filter = '';
-    //   }
-    //   else
-    //   {
-    //     $filter = "AND refno = '$refno'";
-    //   }
+        if(in_array('IAVA',$_SESSION['module_code']))
+        {
+            $query_data = $this->db->query("SELECT * FROM ( SELECT a.refno,'' AS promo_refno,a.location,a.podate AS document_date,
+            a.scode AS supplier_code,
+            a.sname AS supplier_name,
+            '$type' AS doc_type,
+            '$customer' AS pdf_customer_name
+            FROM b2b_archive.`pomain` a 
+            WHERE a.scode IN (SELECT supplier_group_name FROM lite_b2b.set_supplier_group WHERE 
+            supplier_guid = '4177E2DE057711E8A366A81E8453CCF0' 
+            AND customer_guid = '$customer_guid')
+            AND a.customer_guid = '$customer_guid' 
+            AND LEFT(a.podate,7) BETWEEN '2021-01' AND '2022-12'
+            GROUP BY a.refno ) aa
+            $filter ");
+        }
+        else
+        {
+            $query_data = $this->db->query("SELECT * FROM ( SELECT a.refno,'' AS promo_refno,a.location,a.podate AS document_date,
+            a.scode AS supplier_code,
+            a.sname AS supplier_name,
+            '$type' AS doc_type,
+            '$customer' AS pdf_customer_name
+            FROM b2b_archive.`pomain` a 
+            WHERE a.customer_guid = '$customer_guid' 
+            AND LEFT(a.podate,7) BETWEEN '2021-01' AND '2022-12'
+            AND a.location IN ($query_loc) 
+            AND a.scode IN (".$_SESSION['query_supcode'].")
+            GROUP BY a.refno ) aa
+            $filter");
+        }
 
-    //   if(in_array('IAVA',$_SESSION['module_code']))
-    //   {
-    //     $query_data = $this->db->query("SELECT refno AS refno_val,grdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,total,hide_at,hide_by,hide_remark FROM b2b_amend.`grmain` WHERE customer_guid = '$customer_guid' $filter ORDER BY hide_at DESC");
+        // if(in_array('IAVA',$_SESSION['module_code']))
+        // {
+        //     $query_data = $this->db->query("SELECT refno AS refno_val,podate AS document_date,`status`,location AS loc_group ,scode AS supplier_code,sname AS supplier_name,total,hide_at,hide_by,hide_remark FROM b2b_amend.`pomain` WHERE customer_guid = '$customer_guid' $filter ORDER BY hide_at DESC");
+        // }
+        // else
+        // {
+        //     $query_data = $this->db->query("SELECT refno AS refno_val,podate AS document_date,`status`,location AS loc_group ,scode AS supplier_code,sname AS supplier_name,total,hide_at,hide_by,hide_remark FROM b2b_amend.`pomain` WHERE customer_guid = '$customer_guid' AND location IN ($query_loc) and scode IN (".$_SESSION['query_supcode'].") $filter ORDER BY hide_at DESC");
+        // }
+    }
+    else if($doc_type == 'grmain')
+    {
+        $type = 'GRN';
 
-    //     //echo $this->db->last_query();die;
-    //   }
-    //   else
-    //   {
-    //     $query_data = $this->db->query("SELECT refno AS refno_val,grdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,total,hide_at,hide_by,hide_remark FROM b2b_amend.`grmain` WHERE customer_guid = '$customer_guid' AND location IN ($query_loc) and code IN (".$_SESSION['query_supcode'].") $filter ORDER BY hide_at DESC");
-    //   }
-    // }
-    // else if($doc_type == 'grda')
-    // {
-    //   if(($refno == '') || ($refno == null) || ($refno == 'null'))
-    //   {
-    //     $filter = '';
-    //   }
-    //   else
-    //   {
-    //     $filter = "AND a.refno = '$refno'";
-    //   }
+        if(($refno == '') || ($refno == null) || ($refno == 'null'))
+        {
+            $filter = '';
+        }
+        else
+        {
+            $filter = "WHERE refno LIKE '%$refno%'";
+        }
 
-    //   if(in_array('IAVA',$_SESSION['module_code']))
-    //   {
-    //     $query_data = $this->db->query("SELECT a.refno AS refno_val, a.created_at AS document_date, a.status, a.location AS loc_group, a.ap_sup_code AS supplier_code, IF(b.name IS NULL, c.name , b.name ) AS supplier_name, a.varianceamt AS total, a.hide_at, a.hide_by, a.hide_remark FROM b2b_amend.`grmain_dncn` a LEFT JOIN b2b_amend.grmain b ON a.`refno` = b.`refno` LEFT JOIN b2b_summary.grmain c ON a.refno = c.refno WHERE a.customer_guid = '$customer_guid' $filter ORDER BY a.hide_at DESC");
-    //   }
-    //   else
-    //   {
-    //     $query_data = $this->db->query("SELECT a.refno AS refno_val, a.created_at AS document_date, a.status, a.location AS loc_group, a.ap_sup_code AS supplier_code, IF(b.name IS NULL, c.name , b.name ) AS supplier_name, a.varianceamt AS total, a.hide_at, a.hide_by, a.hide_remark FROM b2b_amend.`grmain_dncn` a LEFT JOIN b2b_amend.grmain b ON a.`refno` = b.`refno` LEFT JOIN b2b_summary.grmain c ON a.refno = c.refno WHERE a.customer_guid = '$customer_guid' AND a.location IN ($query_loc) and a.ap_sup_code IN (".$_SESSION['query_supcode'].") $filter ORDER BY a.hide_at DESC");
-    //   }
-    // }
-    if($doc_type == 'dbnotemain')
+        if(in_array('IAVA',$_SESSION['module_code']))
+        {
+            $query_data = $this->db->query("SELECT * FROM ( SELECT a.refno,'' AS promo_refno,a.location,a.grdate AS document_date,
+            a.code AS supplier_code,
+            a.name AS supplier_name,
+            '$type' AS doc_type,
+            '$customer' AS pdf_customer_name
+            FROM b2b_archive.`grmain` a 
+            WHERE a.code IN (SELECT supplier_group_name FROM lite_b2b.set_supplier_group WHERE 
+            supplier_guid = '4177E2DE057711E8A366A81E8453CCF0' 
+            AND customer_guid = '$customer_guid')
+            AND a.customer_guid = '$customer_guid' 
+            AND LEFT(a.grdate,7) BETWEEN '2021-01' AND '2022-12'
+            GROUP BY a.refno ) aa
+            $filter ");
+        }
+        else
+        {
+            $query_data = $this->db->query("SELECT * FROM ( SELECT a.refno,'' AS promo_refno,a.location,a.grdate AS document_date,
+            a.code AS supplier_code,
+            a.name AS supplier_name,
+            '$type' AS doc_type,
+            '$customer' AS pdf_customer_name
+            FROM b2b_archive.`grmain` a 
+            WHERE a.customer_guid = '$customer_guid' 
+            AND LEFT(a.grdate,7) BETWEEN '2021-01' AND '2022-12'
+            AND a.location IN ($query_loc) 
+            AND a.code IN (".$_SESSION['query_supcode'].")
+            GROUP BY a.refno ) aa
+            $filter");
+        }
+
+        // if(in_array('IAVA',$_SESSION['module_code']))
+        // {
+        //     $query_data = $this->db->query("SELECT refno AS refno_val,grdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,total,hide_at,hide_by,hide_remark FROM b2b_amend.`grmain` WHERE customer_guid = '$customer_guid' $filter ORDER BY hide_at DESC");
+
+        //     //echo $this->db->last_query();die;
+        // }
+        // else
+        // {
+        //     $query_data = $this->db->query("SELECT refno AS refno_val,grdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,total,hide_at,hide_by,hide_remark FROM b2b_amend.`grmain` WHERE customer_guid = '$customer_guid' AND location IN ($query_loc) and code IN (".$_SESSION['query_supcode'].") $filter ORDER BY hide_at DESC");
+        // }
+    }
+    else if($doc_type == 'grda')
+    {
+        $type = 'GRDA';
+
+        if(($refno == '') || ($refno == null) || ($refno == 'null'))
+        {
+            $filter = '';
+        }
+        else
+        {
+            $filter = "WHERE refno LIKE '%$refno%'";
+        }
+
+        if(in_array('IAVA',$_SESSION['module_code']))
+        {
+            $query_data = $this->db->query("SELECT * FROM ( SELECT a.refno,a.transtype,'' AS promo_refno,a.location,b.grdate AS document_date,
+            b.code AS supplier_code,
+            b.name AS supplier_name,
+            '$type' AS doc_type,
+            '$customer' AS pdf_customer_name
+            FROM b2b_archive.`grmain_dncn` a 
+            INNER JOIN b2b_archive.grmain b
+            ON a.refno = b.refno
+            AND a.customer_guid = b.customer_guid
+            WHERE b.code IN (SELECT supplier_group_name FROM lite_b2b.set_supplier_group WHERE 
+            supplier_guid = '4177E2DE057711E8A366A81E8453CCF0' 
+            AND customer_guid = '$customer_guid')
+            AND a.customer_guid = '$customer_guid' 
+            AND LEFT(b.grdate,7) BETWEEN '2021-01' AND '2022-12'
+            GROUP BY a.refno,a.transtype ) aa
+            $filter ");
+        }
+        else
+        {
+            $query_data = $this->db->query("SELECT * FROM ( SELECT a.refno,a.transtype,'' AS promo_refno,a.location,b.grdate AS document_date,
+            b.code AS supplier_code,
+            b.name AS supplier_name,
+            '$type' AS doc_type,
+            '$customer' AS pdf_customer_name
+            FROM b2b_archive.`grmain_dncn` a 
+            INNER JOIN b2b_archive.grmain b
+            ON a.refno = b.refno
+            AND a.customer_guid = b.customer_guid
+            WHERE a.customer_guid = '$customer_guid' 
+            AND LEFT(b.grdate,7) BETWEEN '2021-01' AND '2022-12'
+            AND a.location IN ($query_loc) 
+            AND b.code IN (".$_SESSION['query_supcode'].")
+            GROUP BY a.refno,a.transtype ) aa
+            $filter");
+        }
+
+        // if(in_array('IAVA',$_SESSION['module_code']))
+        // {
+        //     $query_data = $this->db->query("SELECT a.refno AS refno_val, a.created_at AS document_date, a.status, a.location AS loc_group, a.ap_sup_code AS supplier_code, IF(b.name IS NULL, c.name , b.name ) AS supplier_name, a.varianceamt AS total, a.hide_at, a.hide_by, a.hide_remark FROM b2b_amend.`grmain_dncn` a LEFT JOIN b2b_amend.grmain b ON a.`refno` = b.`refno` LEFT JOIN b2b_summary.grmain c ON a.refno = c.refno WHERE a.customer_guid = '$customer_guid' $filter ORDER BY a.hide_at DESC");
+        // }
+        // else
+        // {
+        //     $query_data = $this->db->query("SELECT a.refno AS refno_val, a.created_at AS document_date, a.status, a.location AS loc_group, a.ap_sup_code AS supplier_code, IF(b.name IS NULL, c.name , b.name ) AS supplier_name, a.varianceamt AS total, a.hide_at, a.hide_by, a.hide_remark FROM b2b_amend.`grmain_dncn` a LEFT JOIN b2b_amend.grmain b ON a.`refno` = b.`refno` LEFT JOIN b2b_summary.grmain c ON a.refno = c.refno WHERE a.customer_guid = '$customer_guid' AND a.location IN ($query_loc) and a.ap_sup_code IN (".$_SESSION['query_supcode'].") $filter ORDER BY a.hide_at DESC");
+        // }
+    }
+    else if($doc_type == 'dbnotemain')
     {
         $type = 'PRDN';
 
@@ -236,7 +273,7 @@ class Archive_doc extends CI_Controller {
             supplier_guid = '4177E2DE057711E8A366A81E8453CCF0' 
             AND customer_guid = '$customer_guid')
             AND a.customer_guid = '$customer_guid' 
-            AND LEFT(a.docdate,7) BETWEEN '2020-06' AND '2021-06'
+            AND LEFT(a.docdate,7) BETWEEN '2021-01' AND '2022-12'
             GROUP BY a.refno ) aa
             $filter ");
         }
@@ -249,63 +286,139 @@ class Archive_doc extends CI_Controller {
             '$customer' AS pdf_customer_name
             FROM b2b_archive.`dbnotemain` a 
             WHERE a.customer_guid = '$customer_guid' 
-            AND LEFT(a.docdate,7) BETWEEN '2020-06' AND '2021-06'
+            AND LEFT(a.docdate,7) BETWEEN '2021-01' AND '2022-12'
             AND a.location IN ($query_loc) 
             AND a.code IN (".$_SESSION['query_supcode'].")
             GROUP BY a.refno ) aa
             $filter");
         }
     }
-    // else if($doc_type == 'cnnotemain')
-    // {
-    //   if(($refno == '') || ($refno == null) || ($refno == 'null'))
-    //   {
-    //     $filter = '';
-    //   }
-    //   else
-    //   {
-    //     $filter = "AND refno = '$refno'";
-    //   }
+    else if($doc_type == 'cnnotemain')
+    {
+        $type = 'PRCN';
 
-    //   if(in_array('IAVA',$_SESSION['module_code']))
-    //   {
-    //     $query_data = $this->db->query("SELECT refno AS refno_val,docdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,amount AS total,hide_at,hide_by,hide_remark FROM b2b_amend.`cnnotemain` WHERE customer_guid = '$customer_guid' $filter ORDER BY hide_at DESC");
-    //   }
-    //   else
-    //   {
-    //     $query_data = $this->db->query("SELECT refno AS refno_val,docdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,amount AS total,hide_at,hide_by,hide_remark FROM b2b_amend.`cnnotemain` WHERE customer_guid = '$customer_guid' AND location IN ($query_loc) and code IN (".$_SESSION['query_supcode'].") $filter ORDER BY hide_at DESC");
-    //   }
-    // }
-    // else if($doc_type == 'cndn_amt')
-    // {
+        if(($refno == '') || ($refno == null) || ($refno == 'null'))
+        {
+            $filter = '';
+        }
+        else
+        {
+            $filter = "WHERE refno LIKE '%$refno%'";
+        }
 
-    //   if(in_array('IAVA',$_SESSION['module_code']))
-    //   {
-    //     if(($refno == '') || ($refno == null) || ($refno == 'null'))
-    //     {
-    //       $filter = '';
-    //     }
-    //     else
-    //     {
-    //       $filter = "WHERE a.refno_val = '$refno'";
-    //     }
+        if(in_array('IAVA',$_SESSION['module_code']))
+        {
+            $query_data = $this->db->query("SELECT * FROM ( SELECT a.refno,'' AS promo_refno,a.location,a.docdate AS document_date,
+            a.code AS supplier_code,
+            a.name AS supplier_name,
+            '$type' AS doc_type,
+            '$customer' AS pdf_customer_name
+            FROM b2b_archive.`cnnotemain` a 
+            WHERE a.code IN (SELECT supplier_group_name FROM lite_b2b.set_supplier_group WHERE 
+            supplier_guid = '4177E2DE057711E8A366A81E8453CCF0' 
+            AND customer_guid = '$customer_guid')
+            AND a.customer_guid = '$customer_guid' 
+            AND LEFT(a.docdate,7) BETWEEN '2021-01' AND '2022-12'
+            GROUP BY a.refno ) aa
+            $filter ");
+        }
+        else
+        {
+            $query_data = $this->db->query("SELECT * FROM ( SELECT a.refno,'' AS promo_refno,a.location,a.docdate AS document_date,
+            a.code AS supplier_code,
+            a.name AS supplier_name,
+            '$type' AS doc_type,
+            '$customer' AS pdf_customer_name
+            FROM b2b_archive.`cnnotemain` a 
+            WHERE a.customer_guid = '$customer_guid' 
+            AND LEFT(a.docdate,7) BETWEEN '2021-01' AND '2022-12'
+            AND a.location IN ($query_loc) 
+            AND a.code IN (".$_SESSION['query_supcode'].")
+            GROUP BY a.refno ) aa
+            $filter");
+        }
 
-    //     $query_data = $this->db->query("SELECT * FROM ( SELECT refno AS refno_val,trans_type,docdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,amount AS total,hide_at,hide_by,hide_remark FROM b2b_amend.`cndn_amt` WHERE customer_guid = '$customer_guid' AND trans_type IN ('PCNAMT', 'PCNamt') UNION ALL SELECT refno AS refno_val,trans_type,docdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,amount AS total,hide_at,hide_by,hide_remark FROM b2b_amend.`cndn_amt` WHERE customer_guid = '$customer_guid' AND trans_type IN ('PDNAMT', 'PDNamt') )a $filter ORDER BY a.hide_at DESC");
-    //   }
-    //   else
-    //   {
-    //     if(($refno == '') || ($refno == null) || ($refno == 'null'))
-    //     {
-    //       $filter = '';
-    //     }
-    //     else
-    //     {
-    //       $filter = "AND a.refno_val = '$refno'";
-    //     }
+        // if(in_array('IAVA',$_SESSION['module_code']))
+        // {
+        //     $query_data = $this->db->query("SELECT refno AS refno_val,docdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,amount AS total,hide_at,hide_by,hide_remark FROM b2b_amend.`cnnotemain` WHERE customer_guid = '$customer_guid' $filter ORDER BY hide_at DESC");
+        // }
+        // else
+        // {
+        //     $query_data = $this->db->query("SELECT refno AS refno_val,docdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,amount AS total,hide_at,hide_by,hide_remark FROM b2b_amend.`cnnotemain` WHERE customer_guid = '$customer_guid' AND location IN ($query_loc) and code IN (".$_SESSION['query_supcode'].") $filter ORDER BY hide_at DESC");
+        // }
+    }
+    else if($doc_type == 'cndn_amt')
+    {
+        $type = 'PRCN';
 
-    //     $query_data = $this->db->query("SELECT * FROM ( SELECT refno AS refno_val,trans_type,docdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,amount AS total,hide_at,hide_by,hide_remark FROM b2b_amend.`cndn_amt` WHERE customer_guid = '$customer_guid' AND trans_type IN ('PCNAMT', 'PCNamt') UNION ALL SELECT refno AS refno_val,trans_type,docdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,amount AS total,hide_at,hide_by,hide_remark FROM b2b_amend.`cndn_amt` WHERE customer_guid = '$customer_guid' AND trans_type IN ('PDNAMT', 'PDNamt') )a WHERE a.loc_group IN ($query_loc) and a.supplier_code IN (".$_SESSION['query_supcode'].") $filter ORDER BY a.hide_at DESC");
-    //   }
-    // }
+        if(($refno == '') || ($refno == null) || ($refno == 'null'))
+        {
+            $filter = '';
+        }
+        else
+        {
+            $filter = "WHERE refno LIKE '%$refno%'";
+        }
+
+        if(in_array('IAVA',$_SESSION['module_code']))
+        {
+            $query_data = $this->db->query("SELECT * FROM ( SELECT a.refno,'' AS promo_refno,a.location,a.docdate AS document_date,
+            a.code AS supplier_code,
+            a.name AS supplier_name,
+            '$type' AS doc_type,
+            '$customer' AS pdf_customer_name
+            FROM b2b_archive.`cnnotemain` a 
+            WHERE a.code IN (SELECT supplier_group_name FROM lite_b2b.set_supplier_group WHERE 
+            supplier_guid = '4177E2DE057711E8A366A81E8453CCF0' 
+            AND customer_guid = '$customer_guid')
+            AND a.customer_guid = '$customer_guid' 
+            AND LEFT(a.docdate,7) BETWEEN '2021-01' AND '2022-12'
+            GROUP BY a.refno ) aa
+            $filter ");
+        }
+        else
+        {
+            $query_data = $this->db->query("SELECT * FROM ( SELECT a.refno,'' AS promo_refno,a.location,a.docdate AS document_date,
+            a.code AS supplier_code,
+            a.name AS supplier_name,
+            '$type' AS doc_type,
+            '$customer' AS pdf_customer_name
+            FROM b2b_archive.`cnnotemain` a 
+            WHERE a.customer_guid = '$customer_guid' 
+            AND LEFT(a.docdate,7) BETWEEN '2021-01' AND '2022-12'
+            AND a.location IN ($query_loc) 
+            AND a.code IN (".$_SESSION['query_supcode'].")
+            GROUP BY a.refno ) aa
+            $filter");
+        }
+
+        // if(in_array('IAVA',$_SESSION['module_code']))
+        // {
+        //     if(($refno == '') || ($refno == null) || ($refno == 'null'))
+        //     {
+        //     $filter = '';
+        //     }
+        //     else
+        //     {
+        //     $filter = "WHERE a.refno_val = '$refno'";
+        //     }
+
+        //     $query_data = $this->db->query("SELECT * FROM ( SELECT refno AS refno_val,trans_type,docdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,amount AS total,hide_at,hide_by,hide_remark FROM b2b_amend.`cndn_amt` WHERE customer_guid = '$customer_guid' AND trans_type IN ('PCNAMT', 'PCNamt') UNION ALL SELECT refno AS refno_val,trans_type,docdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,amount AS total,hide_at,hide_by,hide_remark FROM b2b_amend.`cndn_amt` WHERE customer_guid = '$customer_guid' AND trans_type IN ('PDNAMT', 'PDNamt') )a $filter ORDER BY a.hide_at DESC");
+        // }
+        // else
+        // {
+        //     if(($refno == '') || ($refno == null) || ($refno == 'null'))
+        //     {
+        //     $filter = '';
+        //     }
+        //     else
+        //     {
+        //     $filter = "AND a.refno_val = '$refno'";
+        //     }
+
+        //     $query_data = $this->db->query("SELECT * FROM ( SELECT refno AS refno_val,trans_type,docdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,amount AS total,hide_at,hide_by,hide_remark FROM b2b_amend.`cndn_amt` WHERE customer_guid = '$customer_guid' AND trans_type IN ('PCNAMT', 'PCNamt') UNION ALL SELECT refno AS refno_val,trans_type,docdate AS document_date,`status`,location AS loc_group,`code` AS supplier_code,`name` AS supplier_name,amount AS total,hide_at,hide_by,hide_remark FROM b2b_amend.`cndn_amt` WHERE customer_guid = '$customer_guid' AND trans_type IN ('PDNAMT', 'PDNamt') )a WHERE a.loc_group IN ($query_loc) and a.supplier_code IN (".$_SESSION['query_supcode'].") $filter ORDER BY a.hide_at DESC");
+        // }
+    }
     else if($doc_type == 'pci')
     {
         $type = 'PROMO';
@@ -334,7 +447,7 @@ class Archive_doc extends CI_Controller {
             supplier_guid = '4177E2DE057711E8A366A81E8453CCF0' 
             AND customer_guid = '$customer_guid')
             AND a.customer_guid = '$customer_guid' 
-            AND LEFT(a.docdate,7) BETWEEN '2020-07' AND '2021-01'
+            AND LEFT(a.docdate,7) BETWEEN '2021-01' AND '2022-12'
             GROUP BY a.inv_refno ) aa
             $filter");
         }
@@ -350,7 +463,7 @@ class Archive_doc extends CI_Controller {
             '$customer' AS pdf_customer_name
             FROM b2b_archive.`promo_taxinv` a 
             WHERE a.customer_guid = '$customer_guid' 
-            AND LEFT(a.docdate,7) BETWEEN '2020-07' AND '2021-01'
+            AND LEFT(a.docdate,7) BETWEEN '2021-01' AND '2022-12'
             AND a.loc_group IN ($query_loc) 
             AND a.sup_code IN (".$_SESSION['query_supcode'].")
             GROUP BY a.inv_refno ) aa
@@ -385,7 +498,7 @@ class Archive_doc extends CI_Controller {
             supplier_guid = '4177E2DE057711E8A366A81E8453CCF0' 
             AND customer_guid = '$customer_guid')
             AND a.customer_guid = '$customer_guid' 
-            AND LEFT(a.docdate,7) BETWEEN '2020-06' AND '2021-06'
+            AND LEFT(a.docdate,7) BETWEEN '2021-01' AND '2022-12'
             GROUP BY a.inv_refno ) aa
             $filter");
         }
@@ -401,7 +514,7 @@ class Archive_doc extends CI_Controller {
             '$customer' AS pdf_customer_name
             FROM b2b_archive.`discheme_taxinv` a 
             WHERE a.customer_guid = '$customer_guid' 
-            AND LEFT(a.docdate,7) BETWEEN '2020-06' AND '2021-06'
+            AND LEFT(a.docdate,7) BETWEEN '2021-01' AND '2022-12'
             AND a.loc_group IN ($query_loc) 
             AND a.sup_code IN (".$_SESSION['query_supcode'].") 
             $filter

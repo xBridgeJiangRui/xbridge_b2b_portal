@@ -18,8 +18,8 @@ class general extends CI_Controller
         /*$this->load->library('myfpdf');   
         $this->load->library('mytcpdf');   
         $this->load->library('myfpdi'); */
-        $this->local_ip = $this->file_config_b2b->file_path_name($customer_guid, 'web', 'general_doc', 'local_ip', 'LIP');
-        $this->jasper_ip = $this->file_config_b2b->file_path_name($customer_guid, 'web', 'general_doc', 'jasper_invoice_ip', 'GDJIIP');
+        $this->local_ip = $this->file_config_b2b->file_path_name($this->session->userdata('customer_guid'), 'web', 'general_doc', 'local_ip', 'LIP');
+        $this->jasper_ip = $this->file_config_b2b->file_path_name($this->session->userdata('customer_guid'), 'web', 'general_doc', 'jasper_invoice_ip', 'GDJIIP');
     }
 
     public function view_status()
@@ -1047,38 +1047,39 @@ class general extends CI_Controller
                         $nestedData['box'] = '<input type="checkbox" class="data-check" value="' . $post->refno . '">';
                     };
 
-                    if($acc_settings->row('json_view_doc_btn') == 1){
+                    $view_json = '1';
+                    if($acc_settings->row('json_view_doc_btn') == 'JSON Disabled'){
                         
                         if($check_module == 'panda_po_2'){
-                            $nestedData['button'] = "<a href=" . site_url('json/b2b_po/po_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&accpt_po_status=" . $post->status . " style='float:left' class='btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                            $nestedData['button'] = "<a href=" . site_url('b2b_po/po_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&accpt_po_status=" . $post->status . " style='float:left' class='btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                         };
 
                         if($check_module == 'panda_gr'){
-                            $nestedData['button'] = "<a href=" . site_url('json/b2b_gr/gr_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&accpt_gr_status=" . $post->status . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                            $nestedData['button'] = "<a href=" . site_url('b2b_gr/gr_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&accpt_gr_status=" . $post->status . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                         };
 
                         if($check_module == 'panda_grda'){
-                            $nestedData['button'] = "<a href=" . site_url('json/b2b_grda/grda_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                            $nestedData['button'] = "<a href=" . site_url('b2b_grda/grda_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                         };
 
                         if($check_module == 'panda_prdncn'){
                             if($post->batch_no == '' || $post->batch_no == 'null' || $post->batch_no == null)
                             {
-                                $nestedData['button'] = "<a href=" . site_url('json/b2b_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                                $nestedData['button'] = "<a href=" . site_url('b2b_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                             }
                             else if($post->uploaded_image == '0')
                             {
-                                $nestedData['button'] = "<a href=" . site_url('json/b2b_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                                $nestedData['button'] = "<a href=" . site_url('b2b_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                             }
                             else
                             {
-                                $nestedData['button'] = "<a href=" . site_url('json/b2b_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
+                                $nestedData['button'] = "<a href=" . site_url('b2b_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
                                 <button style='margin-left:5px;' id='btn_image' type='button'  title='IMAGE' class='btn btn-sm btn-warning' refno=" . $post->batch_no . " period_code=" . $post->strb_doc_date . " outlet=" . $post->locgroup . " image_type='STRB'><i class='fa fa-file-image-o'></i></button>";
                             }
                         };
 
                         if ($check_module == 'panda_pdncn') {
-                            $nestedData['button'] = "<a href=" . site_url('json/b2b_pdncn/pdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                            $nestedData['button'] = "<a href=" . site_url('b2b_pdncn/pdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                         };
 
                         if ($check_module == 'panda_pci') {
@@ -1087,28 +1088,28 @@ class general extends CI_Controller
                             // && $this->session->userdata('customer_guid') != 'B00CA0BE403611EBA2FC000D3AC8DFD7' && $this->session->userdata('customer_guid') != '3C475C473DB311EBB4F2AEF59F86279D') 
                             if ($use_refno_val == 'promo_refno')
                             {
-                                $nestedData['button'] = "<a href=" . site_url('json/b2b_pci/pci_child') . "?trans=" . $post->promo_refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                                $nestedData['button'] = "<a href=" . site_url('b2b_pci/pci_child') . "?trans=" . $post->promo_refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                             } else {
-                                $nestedData['button'] = "<a href=" . site_url('json/b2b_pci/pci_child') . "?trans=" . $post->inv_refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                                $nestedData['button'] = "<a href=" . site_url('b2b_pci/pci_child') . "?trans=" . $post->inv_refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
 
                             }
 
                         };
 
                         if ($check_module == 'panda_di') {
-                            $nestedData['button'] = "<a href=" . site_url('json/b2b_di/di_child') . "?trans=" . $post->inv_refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                            $nestedData['button'] = "<a href=" . site_url('b2b_di/di_child') . "?trans=" . $post->inv_refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                         };
 
                         if ($check_module == 'panda_gr_download') {
     
-                            $nestedData['button'] = "<a href=" . site_url('json/b2b_gr/gr_download_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&accpt_gr_status=" . $post->status . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                            $nestedData['button'] = "<a href=" . site_url('b2b_gr/gr_download_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&accpt_gr_status=" . $post->status . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                         };
 
                     }else if($acc_settings->row('json_view_doc_btn') == 99 && ($this->session->userdata('user_group_name') == 'PANDA_TESTING_USE' || $this->session->userdata('user_group_name') == 'SUPER_ADMIN')){
 
                         if($check_module == 'panda_po_2'){
                             $nestedData['button'] = "<a href=" . site_url('panda_po_2/po_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&accpt_po_status=" . $post->status . " style='float:left' class='btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
-                            <a href=" . site_url('json/b2b_po/po_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&accpt_po_status=" . $post->status . " style='float:left' class='btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
+                            <a href=" . site_url('panda_po_2/po_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&view_json=" . $view_json . "&accpt_po_status=" . $post->status . " style='float:left' class='btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
                         };
 
                         if($check_module == 'panda_gr'){
@@ -1116,43 +1117,43 @@ class general extends CI_Controller
                             if($post->consign == '1')
                             {
                                 $nestedData['button'] = "<a href=" . site_url('panda_gr/gr_download_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&accpt_gr_status=" . $post->status . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
-                                <a href=" . site_url('json/b2b_gr/gr_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&accpt_gr_status=" . $post->status . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
+                                <a href=" . site_url('panda_gr/gr_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&view_json=" . $view_json . "&accpt_gr_status=" . $post->status . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
                             }
                             else
                             {
                                 $nestedData['button'] = "<a href=" . site_url('panda_gr/gr_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&accpt_gr_status=" . $post->status . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
-                                <a href=" . site_url('json/b2b_gr/gr_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&accpt_gr_status=" . $post->status . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
+                                <a href=" . site_url('panda_gr/gr_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&view_json=" . $view_json . "&accpt_gr_status=" . $post->status . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
                             }
                         };
 
                         if($check_module == 'panda_grda'){
                             $nestedData['button'] = "<a href=" . site_url('panda_grda/grda_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
-                            <a href=" . site_url('json/b2b_grda/grda_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
+                            <a href=" . site_url('panda_grda/grda_child') . "?trans=" . $post->refno . "&view_json=" . $view_json . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
                         };
 
                         if($check_module == 'panda_prdncn'){
                             if($post->batch_no == '' || $post->batch_no == 'null' || $post->batch_no == null)
                             {
                                 $nestedData['button'] = "<a href=" . site_url('panda_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
-                                <a href=" . site_url('json/b2b_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
+                                <a href=" . site_url('panda_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&view_json=" . $view_json . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
                             }
                             else if($post->uploaded_image == '0')
                             {
                                 $nestedData['button'] = "<a href=" . site_url('panda_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
-                                <a href=" . site_url('json/b2b_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
+                                <a href=" . site_url('panda_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&view_json=" . $view_json . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
                             }
                             else
                             {
                                 $nestedData['button'] = "<a href=" . site_url('panda_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
                                 <button style='margin-left:5px;' id='btn_image' type='button'  title='IMAGE' class='btn btn-sm btn-warning' refno=" . $post->batch_no . " period_code=" . $post->strb_doc_date . " outlet=" . $post->locgroup . " image_type='STRB'><i class='fa fa-file-image-o'></i></button>
-                                <a href=" . site_url('json/b2b_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>
+                                <a href=" . site_url('panda_prdncn/prdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&view_json=" . $view_json . "&type=" . $post->type . " style='margin-left:5px;' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>
                                 <button style='margin-left:5px;' id='btn_image' type='button'  title='IMAGE' class='btn btn-sm btn-warning' refno=" . $post->batch_no . " period_code=" . $post->strb_doc_date . " outlet=" . $post->locgroup . " image_type='STRB'><i class='fa fa-file-image-o'></i></button>";
                             }
                         };
 
                         if ($check_module == 'panda_pdncn') {
                             $nestedData['button'] = "<a href=" . site_url('panda_pdncn/pdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
-                            <a href=" . site_url('json/b2b_pdncn/pdncn_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'></span> JSON</a>";
+                            <a href=" . site_url('panda_pdncn/pdncn_child') . "?trans=" . $post->refno . "&view_json=" . $view_json . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'></span> JSON</a>";
                         };
 
                         if ($check_module == 'panda_pci') {
@@ -1162,10 +1163,10 @@ class general extends CI_Controller
                             if ($use_refno_val == 'promo_refno')
                             {
                                 $nestedData['button'] = "<a href=" . site_url('panda_pci/pci_child') . "?trans=" . $post->promo_refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
-                                <a href=" . site_url('json/b2b_pci/pci_child') . "?trans=" . $post->promo_refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
+                                <a href=" . site_url('panda_pci/pci_child') . "?trans=" . $post->promo_refno . "&view_json=" . $view_json . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
                             } else {
                                 $nestedData['button'] = "<a href=" . site_url('panda_pci/pci_child') . "?trans=" . $post->inv_refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
-                                <a href=" . site_url('json/b2b_pci/pci_child') . "?trans=" . $post->inv_refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'></span> JSON</a>";
+                                <a href=" . site_url('panda_pci/pci_child') . "?trans=" . $post->inv_refno . "&view_json=" . $view_json . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'></span> JSON</a>";
 
                             }
 
@@ -1173,13 +1174,13 @@ class general extends CI_Controller
 
                         if ($check_module == 'panda_di') {
                             $nestedData['button'] = "<a href=" . site_url('panda_di/pdi_child') . "?trans=" . $post->inv_refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
-                            <a href=" . site_url('json/b2b_di/di_child') . "?trans=" . $post->inv_refno . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
+                            <a href=" . site_url('panda_di/pdi_child') . "?trans=" . $post->inv_refno . "&view_json=" . $view_json . "&loc=" . $_REQUEST['loc'] . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
                         };
 
                         if ($check_module == 'panda_gr_download') {
     
                             $nestedData['button'] = "<a href=" . site_url('panda_gr/gr_download_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&accpt_gr_status=" . $post->status . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
-                            <a href=" . site_url('json/b2b_gr/gr_download_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&accpt_gr_status=" . $post->status . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
+                            <a href=" . site_url('panda_gr/gr_download_child') . "?trans=" . $post->refno . "&loc=" . $_REQUEST['loc'] . "&view_json=" . $view_json . "&accpt_gr_status=" . $post->status . " style='float:left' class='btn btn-sm btn-warning' role='button'><span class='fa fa-file-code-o'> JSON</span></a>";
                         };
 
                     }
@@ -1791,7 +1792,7 @@ class general extends CI_Controller
                                         B2B Notification
                                     </h3>
                                     <p class="lead">
-                                        ' . $title . ' - ' . $refno . ' has been cancelled by Supplier at ' . $datetimenow . '
+                                        ' . $title . ' - ' . $refno . ' has been cancelled by Supplier at ' . $date . '
                                         <br> 
                                         Regards,<br>
                                         <a href="' . $_SESSION['url'] . '"> B2B Mail</a>
@@ -2374,9 +2375,9 @@ class general extends CI_Controller
     public function unlink_file()
     {
         $pdf_file = $this->input->post('url_link');
-        $merge_create_path_config = $this->file_config_b2b->merge_print_create_file_path($customer_guid, 'web', 'general_doc', 'merge_print', 'MPMPCP');
-        $path_seperator = $this->file_config_b2b->path_seperator($customer_guid, 'web', 'general_doc', 'path_seperator', 'PS');
-        $merge_path = $this->file_config_b2b->file_path_name($customer_guid, 'web', 'general_doc', 'merge_print', 'MPN');
+        $merge_create_path_config = $this->file_config_b2b->merge_print_create_file_path($this->session->userdata('customer_guid'), 'web', 'general_doc', 'merge_print', 'MPMPCP');
+        $path_seperator = $this->file_config_b2b->path_seperator($this->session->userdata('customer_guid'), 'web', 'general_doc', 'path_seperator', 'PS');
+        $merge_path = $this->file_config_b2b->file_path_name($this->session->userdata('customer_guid'), 'web', 'general_doc', 'merge_print', 'MPN');
         $merge_create_path = $merge_create_path_config . $path_seperator . $merge_path;
         unlink($merge_create_path . $path_seperator . $pdf_file . '.pdf');
         // echo $merge_create_path.$path_seperator.$pdf_file.'.pdf';die;

@@ -75,7 +75,20 @@
         </div>
       <div class="box-body">
         <div class="col-md-12">
-                <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
+                <?php if($view_json == '1')
+                  {
+                    ?>
+                    <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
+                      <div id="accconceptCheck">
+                        <embed id="embed" height="750px" width="100%" src="<?= $request_link_gr; ?>"></embed>
+                      </div>
+                    </div>
+                    <?php
+                  }
+                  else
+                  {
+                    ?>
+                    <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
                     <?php if($file_headers[0] != 'HTTP/1.1 404 Not Found') { ?>
                         <embed src="<?php echo $filename; ?>" width="100%" height="500px" style="border: none;"/> This browser does not support PDFs. Please download the PDF to view it: <a href="<?php echo $filename; ?>">Download PDF</a> 
                     <?php } else 
@@ -83,7 +96,10 @@
                           echo 'pdf not found'; 
                         }
                     ?>
-                </div>
+                    </div>
+                    <?php
+                  }
+                  ?>
         </div>
       </div>
 
@@ -104,7 +120,20 @@
         </div>
       <div class="box-body">
         <div class="col-md-12">
-                <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
+                <?php if($view_json == '1')
+                  {
+                    ?>
+                    <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
+                      <div id="accconceptCheck">
+                        <embed id="embed" height="750px" width="100%" src="<?= $request_link_grda; ?>"></embed>
+                      </div>
+                    </div>
+                    <?php
+                  }
+                  else
+                  {
+                    ?>
+                    <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
                     <?php if($grda_file_headers[0] != 'HTTP/1.1 404 Not Found') { ?>
                         <embed src="<?php echo $grda_filename; ?>" width="100%" height="500px" style="border: none;"/> This browser does not support PDFs. Please download the PDF to view it: <a href="<?php echo $grda_filename; ?>">Download PDF</a> 
                     <?php } else 
@@ -112,7 +141,10 @@
                           echo 'pdf not found'; 
                         }
                     ?>
-                </div>
+                    </div>
+                    <?php
+                  }
+                  ?>
         </div>
       </div>
 

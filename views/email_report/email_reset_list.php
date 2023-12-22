@@ -26,6 +26,7 @@
               <tr>
                 <th>Action</th>
                 <th>Customer Name</th>
+                <th>Supplier Name</th>
                 <th>Email Address</th>
                 <th>Reset Status</th>
                 <th>Reset At</th>
@@ -64,7 +65,7 @@ $(document).ready(function() {
     'lengthMenu'  : [ [10, 25, 50, 999999], [10, 25, 50, 'ALL'] ],
     'searching'   : true,
     'ordering'    : true,
-    'order'       : [ [9 , 'DESC'] ],
+    'order'       : [ [10 , 'desc'] ],
     'info'        : true,
     'autoWidth'   : false,
     "bPaginate": true, 
@@ -100,6 +101,7 @@ $(document).ready(function() {
        
               }},
               { "data" : "acc_name" },
+              { "data" : "supplier_name" },
               { "data" : "email_id" },
               { "data" : "is_reset" ,render:function( data, type, row ){
 
@@ -186,13 +188,17 @@ $(document).ready(function() {
 
     methodd +='<div class="col-md-12">';
 
+    methodd += '<div class="col-sm-6"> <label>Date: ' + date + '</label> </div>';
+
+    methodd += '<div class="col-sm-6"> <label>Time: ' + time + '</label> </div>';
+
     methodd += '<div class="col-md-6"><input type="hidden" class="form-control input-sm" id="reset_guid" value="'+reset_guid+'"/></div>';
 
     methodd += '<div class="col-md-12"><label>Reset Status</label><select id="reset_val" name="reset_val" class="form-control" ><option value="1">Reset</option> <option value="0">No Reset</option></select></div>';
 
-    methodd += '<div class="col-sm-6"> <label>Date</label> <div class="input-group"> <div class="input-group-addon"> <i class="fa fa-calendar"></i> </div> <input name="created_at" id="created_at" type="text" class="datepicker form-control input-sm" value="<?php echo date('Y-m-d');?>" autocomplete="off" > </div> </div>';
+    methodd += '<div class="col-sm-6"> <label>Today Date</label> <div class="input-group"> <div class="input-group-addon"> <i class="fa fa-calendar"></i> </div> <input name="created_at1" id="created_at1" type="text" class="datepicker form-control input-sm" value="<?php echo date('Y-m-d');?>" autocomplete="off" > </div> </div>';
 
-    methodd += '<div class="col-sm-6"> <label>Time</label> <input name="time_at" id="time_at" type="time" step="1" class="form-control input-sm" autocomplete="off" > </div> </div>';
+    methodd += '<div class="col-sm-6"> <label>Today Time</label> <input name="time_at1" id="time_at1" type="time" step="1" class="form-control input-sm" value="' + getCurrentTime() + '" autocomplete="off" > </div> </div>';
 
     methodd += '</div>';
 
@@ -218,8 +224,8 @@ $(document).ready(function() {
 
     var reset_val = $('#reset_val').val();
     var reset_guid = $('#reset_guid').val();
-    var created_at = $('#created_at').val();
-    var time_at = $('#time_at').val();
+    var created_at = $('#created_at1').val();
+    var time_at = $('#time_at1').val();
 
     if((reset_val == '') || (reset_val == null))
     {
@@ -261,6 +267,29 @@ $(document).ready(function() {
           }//close success
         });//close ajax
   });//close add 
+
+  // This function gets the current time and formats it as HH:MM
+  function getCurrentTime() {
+    // Get the current date and time
+    const now = new Date();
+
+    // Extract the current hours from the date
+    let hours = now.getHours();
+
+    // Extract the current minutes from the date
+    let minutes = now.getMinutes();
+
+    // Extract the current second from the date
+    let seconds = now.getSeconds();
+
+    // Add leading zeros to the hours, minutes and seconds if they are single digits
+    hours = hours < 10 ? '0' + hours : hours;
+    minutes = minutes < 10 ? '0' + minutes : minutes;
+    seconds = seconds < 10 ? '0' + seconds : seconds;
+
+    // Return the formatted time as HH:MM
+    return hours + ':' + minutes + ':' + seconds;
+  }
 
   $(document).on('click','#create_email_list',function(){
 

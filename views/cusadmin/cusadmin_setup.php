@@ -175,6 +175,11 @@
     });
   }
 
+  function expiry_clear() {
+    var dueDateInput = document.getElementById("due_date");
+    dueDateInput.value = "";
+  }
+
   function delete_modal(delete_url)
   {
     $('#delete').on('show.bs.modal', function (event) {
@@ -344,7 +349,7 @@ $(document).ready(function() {
     methodd += '<div class="col-md-6"><label>Button Name</label><input type="text" class="form-control input-sm" id="edit_button1" value="'+editbutton1+'" /></div>';
 
     methodd += '<div class="col-sm-6"> <label>Due Date</label> <div class="input-group"> <div class="input-group-addon"> <i class="fa fa-calendar"></i> </div> <input name="due_date" id="due_date" type="text" class="datepicker form-control input-sm" value="'+duedate+'"  autocomplete="off" > </div> </div>';
-    
+
     methodd += '<div class="col-md-2"><br>';
 
     methodd += '<a class="btn btn-danger" onclick="expiry_clear()">Clear</a>';
@@ -789,5 +794,16 @@ $(document).ready(function() {
     });//close confirmation
 
   });//close submit process
+
+  $('#announcement').DataTable({
+      "columnDefs": [
+                    // Disable sorting for the "Action" column
+                     {"targets": [0], "orderable": false}],
+      'paging'      : true,
+      'searching'   : true,
+      'order'       : [], //Disable initial sorting for all columns
+      'lengthMenu'  : [ [10, 25, 50, 9999999999], [10, 25, 50, 'ALL'] ],
+    })
+    
 });
 </script>

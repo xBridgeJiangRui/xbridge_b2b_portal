@@ -99,12 +99,14 @@ class Email_report extends CI_Controller
 		$valid_columns = array(
 			0=>'guid',
             1=>'subject',
-            2=>'email_id',
-            3=>'from_email',
-            4=>'updated_at',
-            5=>'module',
-            6=>'remark',
-            7=>'status',
+			2=>'acc_name',
+			3=>'supplier_name',
+            4=>'email_id',
+            5=>'from_email',
+            6=>'updated_at',
+            7=>'module',
+            8=>'remark',
+            9=>'status',
 	
 		);
 
@@ -155,7 +157,23 @@ class Email_report extends CI_Controller
 
 		$limit_query = " LIMIT " .$start. " , " .$length;
 		
-		$sql = "SELECT * FROM lite_b2b.email_send_content WHERE module = 'key_in' ";
+		$sql = "SELECT esc.guid, esc.subject, a.acc_name, ss.supplier_name, esc.email_id, 
+		esc.from_email ,esc.updated_at, esc.module, esc.remark, esc.status
+				
+		FROM lite_b2b.email_send_content AS esc
+		LEFT JOIN lite_b2b.set_supplier_user_relationship AS ssur
+		ON esc.customer_guid = ssur.customer_guid
+		AND esc.user_guid = ssur.user_guid
+				
+		LEFT JOIN lite_b2b.set_supplier AS ss
+		ON ssur.supplier_guid = ss.supplier_guid
+				
+		INNER JOIN lite_b2b.acc AS a
+		ON esc.customer_guid = a.acc_guid
+		
+		WHERE esc.module ='key_in'
+		
+		GROUP BY esc.guid";
 
 		$query = "SELECT * FROM ( ".$sql." ) a ".$like_first_query.$like_second_query.$order_query.$limit_query;
 
@@ -183,7 +201,8 @@ class Email_report extends CI_Controller
 			$nestedData['guid'] = $row->guid;
 			$nestedData['module'] = $row->module;
 			$nestedData['remark'] = $row->remark;
-			$nestedData['customer_guid'] = $row->customer_guid;
+			$nestedData['acc_name'] = $row->acc_name;
+			$nestedData['supplier_name'] = $row->supplier_name;
 			$nestedData['user_guid'] = $row->user_guid;
 			$nestedData['email_id'] = $row->email_id;
 			$nestedData['subject'] = $row->subject;
@@ -281,17 +300,18 @@ class Email_report extends CI_Controller
 		$valid_columns = array(
 			0=>'reset_guid',
             1=>'acc_name',
-            2=>'email_id',
-            3=>'is_reset',
-            4=>'reset_at',
-            5=>'viewed_at',
-            6=>'ip',
-            7=>'browser',
-            8=>'deleted',
-            9=>'updated_at',
-            10=>'updated_by',
-            11=>'created_at',
-            12=>'created_by',
+			2=>'supplier_name',
+            3=>'email_id',
+            4=>'is_reset',
+            5=>'reset_at',
+            6=>'viewed_at',
+            7=>'ip',
+            8=>'browser',
+            9=>'deleted',
+            10=>'updated_at',
+            11=>'updated_by',
+            12=>'created_at',
+            13=>'created_by',
 
 		);
 
@@ -342,7 +362,22 @@ class Email_report extends CI_Controller
 
 		$limit_query = " LIMIT " .$start. " , " .$length;
 		
-		$sql = "SELECT a.`reset_guid`, a.`user_guid`, a.`customer_guid`, b.`acc_name`, a.`email_id`, a.`is_reset`, a.`reset_at`, a.`viewed_at`, a.`created_by`, a.`created_at`, a.`updated_by`, a.`updated_at`, a.`ip`, a.`browser` , a.`deleted` FROM lite_b2b.reset_pass_list a LEFT JOIN lite_b2b.acc b ON a.customer_guid = b.acc_guid ";
+		$sql = "SELECT a.`reset_guid`, a.`user_guid`, a.`customer_guid`, b.`acc_name`, ss.`supplier_name`,
+		a.`email_id`, a.`is_reset`, a.`reset_at`, a.`viewed_at`, a.`created_by`, 
+		a.`created_at`, a.`updated_by`, a.`updated_at`, a.`ip`, a.`browser` , a.`deleted` 
+		
+		FROM lite_b2b.reset_pass_list a 
+		INNER JOIN lite_b2b.acc b 
+		ON a.customer_guid = b.acc_guid 
+		
+		LEFT JOIN lite_b2b.set_supplier_user_relationship AS ssur
+		ON a.user_guid = ssur.user_guid
+		AND a.customer_guid = ssur.customer_guid
+		
+		LEFT JOIN lite_b2b.set_supplier AS ss
+		ON ssur.supplier_guid = ss.supplier_guid
+		
+		GROUP BY a.reset_guid ";
 
 		$query = "SELECT * FROM ( ".$sql." ) a ".$like_first_query.$like_second_query.$order_query.$limit_query;
 
@@ -369,6 +404,7 @@ class Email_report extends CI_Controller
 		{
 			$nestedData['reset_guid'] = $row->reset_guid;
             $nestedData['customer_guid'] = $row->customer_guid;
+			$nestedData['supplier_name'] = $row->supplier_name;
             $nestedData['user_guid'] = $row->user_guid;
             $nestedData['email_id'] = $row->email_id;
             $nestedData['is_reset'] = $row->is_reset;
@@ -403,6 +439,7 @@ class Email_report extends CI_Controller
     	$created_at = $this->input->post("created_at");
     	$time_at = $this->input->post("time_at");
     	$created_at = $created_at . ' ' . $time_at;
+		$updated_at = $created_at . ' ' . $time_at;
 
     	$updated_at = $this->db->query("SELECT NOW() as now")->row('now');
     	$user_id = $this->db->query("SELECT a.user_id FROM set_user a WHERE a.user_guid ='".$_SESSION['user_guid']."'")->row('user_id');
@@ -412,8 +449,8 @@ class Email_report extends CI_Controller
 	    	$data_1 = array(   
 	    	  'is_reset' => $reset_val,
 	    	  'reset_at' => $updated_at,
-	    	  'created_at' => $created_at,
-	    	  'created_by' => $user_id,
+	    	//   'created_at' => $created_at,
+	    	//   'created_by' => $user_id,
 		      'updated_at' => $updated_at,
 		      'updated_by' => $user_id
 		    );
@@ -425,8 +462,8 @@ class Email_report extends CI_Controller
     		$data_1 = array(   
 	    	  'is_reset' => $reset_val,
 	    	  'reset_at' => '1001-01-01 00:00:00',
-	    	  'created_at' => $created_at,
-	    	  'created_by' => $user_id,
+	    	//   'created_at' => $created_at,
+	    	//   'created_by' => $user_id,
 		      'updated_at' => $updated_at,
 		      'updated_by' => $user_id
 		    );

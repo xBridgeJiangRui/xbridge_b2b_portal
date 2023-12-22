@@ -119,6 +119,13 @@ FROM b2b_summary.promo_taxinv  WHERE customer_guid  = '".$_SESSION['customer_gui
             $loc = $_REQUEST['loc'];
             $customer_guid = $this->session->userdata('customer_guid');
 
+            if (isset($_REQUEST['view_json'])) 
+            {
+                $view_json = $_REQUEST['view_json'];
+            } else {
+                $view_json = $this->db->query("SELECT json_view_doc_btn FROM lite_b2b.acc_settings WHERE customer_guid = '$customer_guid'")->row('json_view_doc_btn');
+            }
+
             $check_refno = $this->db->query("SELECT customer_guid,pci_use_inv_refno FROM lite_b2b.acc_settings WHERE pci_use_inv_refno = '1' AND customer_guid = '".$_SESSION['customer_guid']."'")->result_array();
 
             if(count($check_refno) == '1')
@@ -166,7 +173,8 @@ FROM b2b_summary.promo_taxinv  WHERE customer_guid  = '".$_SESSION['customer_gui
                 'file_headers' => $file_headers,
                 'virtual_path' => $virtual_path,
                 'title' => 'Promo Tax Invoice',
-                'request_link' => site_url('json/B2b_pci/pci_report?refno='.$refno),
+                'request_link' => site_url('panda_pci/pci_report?refno='.$refno),
+                'view_json' => $view_json,
             );
 
             $customer_guid = $_SESSION['customer_guid'];        
@@ -549,6 +557,135 @@ FROM b2b_summary.promo_taxinv  WHERE customer_guid  = '".$_SESSION['customer_gui
             $this->session->set_flashdata('message', 'Session Expired! Please relogin');
             redirect('#');
         }
+    }
+
+    public function pci_report()
+    {
+        $refno = $_REQUEST['refno'];
+        $customer_guid = $this->session->userdata('customer_guid');
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
+        $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
+        $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
+
+        if($cloud_directory == null || $cloud_directory == ''){
+            $cloud_directory = '/media/b2b-pdf/data_conversion/';
+        }
+
+        if($fileserver_url == null || $fileserver_url == ''){
+            $fileserver_url = 'https://file.xbridge.my/';
+        }
+
+        $cloud_directory = $cloud_directory . $customer_guid . '/PCI/';
+
+        // check if pdf file already exist
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
+
+            $curl = curl_init();
+
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $fileserver_url. '/b2b-pdf/data_conversion/' . $customer_guid . '/PCI/' . $refno.'.pdf',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                    'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+                ),
+            ));
+                
+            $response = curl_exec($curl);
+
+            curl_close($curl); 
+
+            header('Content-type:application/pdf');
+            header('Content-Disposition: inline; filename='.$refno.'.pdf');
+
+            echo $response; die;
+        }
+
+        $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_Promotion/promo_claim_inv.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // PCI
+        //print_r($url); die;
+
+        $check_refno = $this->db->query("SELECT customer_guid,pci_use_inv_refno FROM lite_b2b.acc_settings WHERE pci_use_inv_refno = '1' AND customer_guid = '".$_SESSION['customer_guid']."'")->result_array();
+
+        if(count($check_refno) == 1)
+        {
+            $use_refno_val = 'inv_refno';
+        }
+        else
+        {
+            $use_refno_val = 'promo_refno';
+        }
+
+        if( $use_refno_val == 'inv_refno')
+        {
+            $check_code = $this->db->query("SELECT a.supplier_code from b2b_summary.promo_taxinv_info a where a.inv_refno = '$refno' and a.customer_guid = '" . $_SESSION['customer_guid'] . "' GROUP BY a.refno")->row('supplier_code');
+        }
+        else
+        {
+            $check_code = $this->db->query("SELECT a.supplier_code from b2b_summary.promo_taxinv_info a where a.promo_refno = '$refno' and a.customer_guid = '" . $_SESSION['customer_guid'] . "' GROUP BY a.refno")->row('supplier_code');
+        }
+
+        $check_code = str_replace("/", "+-+", $check_code);
+
+        $parameter = $this->db->query("SELECT * from menu where module_link = 'panda_pci'");
+        $type = $parameter->row('type');
+        $code = $check_code;
+
+        $filename = $this->db->query("SELECT REPLACE(REPLACE(REPLACE(filename_format, 'type', '$type'), 'code', '$code'), 'refno' , '$refno') AS query FROM menu where module_link = 'panda_pci'")->row('query');
+
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_HTTPHEADER => array(
+                'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+            ),
+        ));
+            
+        $response = curl_exec($curl);
+
+        // check pdf file directory
+        if (!file_exists($cloud_directory)) {
+            mkdir($cloud_directory, 0777, true);
+        }
+
+        // download pdf file into the cloud directory
+        file_put_contents($cloud_directory.$refno.'.pdf', $response);
+
+        if(file_exists($cloud_directory.$refno.'.pdf')){
+            
+            $update_data = array(
+                'exported_by'       => 'trigger_button',
+                'exported'          => 1,
+                'exported_datetime' => $this->db->query("SELECT NOW() AS current_datetime")->row('current_datetime'),
+            );
+
+            $this->db->where('refno', $refno);
+            $this->db->where('customer_guid', $customer_guid);
+            $this->db->update('b2b_summary.doc_export', $update_data);
+
+        }
+
+        header('Content-type:application/pdf');
+        header('Content-Disposition: inline; filename='.$filename.'.pdf');
+        echo $response; 
+
+        curl_close($curl); 
     }
 
 }

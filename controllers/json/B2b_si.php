@@ -195,7 +195,7 @@ class b2b_si extends CI_Controller
                     $tab['tax'] = "<span class='pull-right'>" . number_format($row->tax, 2) . "</span>";
                     $tab['total_include_tax'] = "<span class='pull-right'>" . number_format($row->total_include_tax, 2) . "</span>";
                     $tab["status"] = $row->status;
-                    $tab["action"] = "<a href=" . site_url('json/b2b_si/si_child') . "?trans=" . $row->si_refno . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                    $tab["action"] = "<a href=" . site_url('b2b_si/si_child') . "?trans=" . $row->si_refno . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                     $tab["chkb"] = '<input type="checkbox" class="data-check" value="' . $row->si_refno . '">';
 
                     $data[] = $tab;
@@ -249,7 +249,7 @@ class b2b_si extends CI_Controller
             $data = array(
                 'title' => 'Sales Invoice',
                 'check_status' => $check_status,
-                'request_link' => site_url('json/B2b_si/si_report?refno='.$refno),
+                'request_link' => site_url('B2b_si/si_report?refno='.$refno),
             );
 
             $this->load->view('header');
@@ -266,6 +266,7 @@ class b2b_si extends CI_Controller
     {
         $refno = $_REQUEST['refno'];
         $customer_guid = $_SESSION['customer_guid'];
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
         $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
         $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
 
@@ -280,7 +281,7 @@ class b2b_si extends CI_Controller
         $cloud_directory = $cloud_directory . $customer_guid . '/SI/';
 
         // check if pdf file already exist
-        if (file_exists($cloud_directory.$refno.'.pdf')) {
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
 
             $curl = curl_init();
 
@@ -312,7 +313,7 @@ class b2b_si extends CI_Controller
 
         //print_r($refno); die;
         $this->jasper_ip = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','jasper_invoice_ip','GDJIIP');
-        $url = $this->jasper_ip."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_SI/si_landscape.pdf?refno=".$refno."&customer_guid=".$customer_guid;
+        $url = $this->jasper_ip."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_SI/si_landscape.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode;
 
         $check_code = $this->db->query("SELECT code from b2b_summary.simain_info where refno = '$refno' and customer_guid = '" . $_SESSION['customer_guid'] . "'")->row('code');
 

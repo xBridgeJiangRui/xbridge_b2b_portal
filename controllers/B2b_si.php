@@ -17,7 +17,6 @@ class b2b_si extends CI_Controller
         $this->load->model('Po_model');
         $this->load->model('General_model');
         $this->load->model('Datatable_model');
-        $this->jasper_ip = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','jasper_invoice_ip','GDJIIP');
     }
 
     public function index()
@@ -153,9 +152,9 @@ class b2b_si extends CI_Controller
             }
 
             $query = "SELECT a.RefNo as si_refno,
-            a.loc_group,
+            CAST(JSON_UNQUOTE(JSON_EXTRACT(a.`si_json_info`,'$.simain[0].loc_group')) AS CHAR(10)) AS loc_group,
             a.Code as code,
-            a.supplier_name AS `name`,
+            CAST(JSON_UNQUOTE(JSON_EXTRACT(a.`si_json_info`,'$.simain[0].Name')) AS CHAR(100)) AS name,
             a.InvoiceDate as invoice_date,
             a.DeliverDate as delivery_date,
             a.DocNo as doc_no,
@@ -163,9 +162,9 @@ class b2b_si extends CI_Controller
             ROUND(JSON_UNQUOTE(JSON_EXTRACT(a.`si_json_info`,'$.simain[0].gst_tax_sum')), 2) AS tax,
             ROUND(JSON_UNQUOTE(JSON_EXTRACT(a.`si_json_info`,'$.simain[0].total_include_tax')), 2) AS total_include_tax,
             IF(a.status = '', 'NEW', status) as status 
-            FROM b2b_summary.`simain_info` AS a FORCE INDEX (customer_guid)
+            FROM b2b_summary.`simain_info` AS a
             WHERE a.`customer_guid` = '$customer_guid'
-            AND a.loc_group IN ($si_loc)
+            AND JSON_UNQUOTE(JSON_EXTRACT(a.`si_json_info`,'$.simain[0].loc_group')) IN ($si_loc)
             $module_code_in
             $si_ref_no_in
             $status_in
@@ -268,7 +267,52 @@ class b2b_si extends CI_Controller
         $refno = $_REQUEST['refno'];
         $customer_guid = $_SESSION['customer_guid'];
         $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
+        $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
+        $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
 
+        if($cloud_directory == null || $cloud_directory == ''){
+            $cloud_directory = '/media/b2b-pdf/data_conversion/';
+        }
+
+        if($fileserver_url == null || $fileserver_url == ''){
+            $fileserver_url = 'https://file.xbridge.my/';
+        }
+
+        $cloud_directory = $cloud_directory . $customer_guid . '/SI/';
+
+        // check if pdf file already exist
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
+
+            $curl = curl_init();
+
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $fileserver_url. '/b2b-pdf/data_conversion/' . $customer_guid . '/SI/' . $refno.'.pdf',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                    'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+                ),
+            ));
+                
+            $response = curl_exec($curl);
+
+            curl_close($curl); 
+
+            header('Content-type:application/pdf');
+            header('Content-Disposition: inline; filename='.$refno.'.pdf');
+
+            echo $response; die;
+        }
+
+        //print_r($refno); die;
+        $this->jasper_ip = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','jasper_invoice_ip','GDJIIP');
         $url = $this->jasper_ip."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_SI/si_landscape.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode;
 
         $check_code = $this->db->query("SELECT code from b2b_summary.simain_info where refno = '$refno' and customer_guid = '" . $_SESSION['customer_guid'] . "'")->row('code');
@@ -301,11 +345,33 @@ class b2b_si extends CI_Controller
             
         $response = curl_exec($curl);
 
+        // check pdf file directory
+        if (!file_exists($cloud_directory)) {
+            mkdir($cloud_directory, 0777, true);
+        }
+
+        // download pdf file into the cloud directory
+        file_put_contents($cloud_directory.$refno.'.pdf', $response);
+
+        if(file_exists($cloud_directory.$refno.'.pdf')){
+            
+            $update_data = array(
+                'exported_by'       => 'trigger_button',
+                'exported'          => 1,
+                'exported_datetime' => $this->db->query("SELECT NOW() AS current_datetime")->row('current_datetime'),
+            );
+
+            $this->db->where('refno', $refno);
+            $this->db->where('customer_guid', $customer_guid);
+            $this->db->update('b2b_summary.doc_export', $update_data);
+
+        }
+
         header('Content-type:application/pdf');
         header('Content-Disposition: inline; filename='.$filename.'.pdf');
         echo $response; 
 
-        curl_close($curl); 
+        curl_close($curl);
 
 
     }

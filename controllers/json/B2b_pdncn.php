@@ -247,7 +247,7 @@ class b2b_pdncn extends CI_Controller
                     $tab['gst_tax_sum'] = $row->gst_tax_sum;
                     $tab['amount_include_tax'] = $row->total_incl_tax;
                     $tab['status'] = $row->status;
-                    $tab['button'] = "<a href=" . site_url('json/b2b_pdncn/pdncn_child') . "?trans=" . $row->refno . "&loc=" . $_SESSION['pdncn_loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                    $tab['button'] = "<a href=" . site_url('b2b_pdncn/pdncn_child') . "?trans=" . $row->refno . "&loc=" . $_SESSION['pdncn_loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                     $tab['box'] = '<input type="checkbox" class="data-check" value="' . $row->refno . '">';
 
                     $data[] = $tab;
@@ -326,7 +326,7 @@ class b2b_pdncn extends CI_Controller
                 'file_headers' => $file_headers,
                 'virtual_path' => $virtual_path,
                 'title' => 'PDN/CN',
-                'request_link_pdncn' => site_url('json/B2b_pdncn/pdncn_report?refno='.$refno),
+                'request_link_pdncn' => site_url('B2b_pdncn/pdncn_report?refno='.$refno),
             );
 
             $this->load->view('header');       
@@ -352,6 +352,7 @@ class b2b_pdncn extends CI_Controller
         
         $refno = $_REQUEST['refno'];
         $customer_guid = $_SESSION['customer_guid'];
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
         $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
         $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
 
@@ -366,7 +367,7 @@ class b2b_pdncn extends CI_Controller
         $cloud_directory = $cloud_directory . $customer_guid . '/PDNCN/';
 
         // check if pdf file already exist
-        if (file_exists($cloud_directory.$refno.'.pdf')) {
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
 
             $curl = curl_init();
 
@@ -396,10 +397,10 @@ class b2b_pdncn extends CI_Controller
             echo $response; die;
         }
 
-        $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PDN_PCN/main_jrxml.pdf?refno=".$refno."&customer_guid=".$customer_guid; 
+        $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PDN_PCN/main_jrxml.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode;
         // print_r($url); die;
         $check_code = $this->db->query("SELECT supplier_code from b2b_summary.cndn_amt_info where refno = '$refno' and customer_guid = '" . $_SESSION['customer_guid'] . "' GROUP BY refno")->row('supplier_code');
-        
+
         $check_code = str_replace("/", "+-+", $check_code);
 
         $parameter = $this->db->query("SELECT * from menu where module_link = 'panda_pdncn'");

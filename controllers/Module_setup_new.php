@@ -1174,16 +1174,26 @@ class Module_setup_new extends CI_Controller
             } else {
                 $duser_guid = $this->input->post('guid');
                 $deletestatus = $this->db->query("SELECT user_guid FROM set_user_branch WHERE user_guid = '$duser_guid' AND acc_guid = '$acc_guid'");
-                // echo $this->db->last_query();die;
+                // Check if there are existing entries for this user_guid and acc_guid combination
+                
                 if ($deletestatus->num_rows() > 0) {
-                    $this->db->query("DELETE FROM set_user_branch WHERE user_guid = '$duser_guid' AND acc_guid = '$acc_guid'");
+                    // If entries exist, delete existing entries
+                    $this->db->where(['user_guid' => $duser_guid, 'acc_guid' => $acc_guid])
+                             ->delete('set_user_branch');
+            
                     if ($this->db->affected_rows() > 0) {
-                        $this->db->replace_batch($table, $data, 'user_guid');
+                        // If deletion successful, update with new entries
+                        foreach ($data as $entry) {
+                            $this->db->set($entry)
+                                     ->insert('set_user_branch');
+                        }
                     } else {
+                        // Handle the case where deletion didn't occur or no rows were affected
                         $this->session->set_flashdata('message', '<div class="alert alert-success text-center" style="font-size: 18px">Failed to Insert Record<button type="button" class="close" data-dismiss="alert"><i class="fa fa-remove"></i></button><br></div>');
                         redirect('module_setup_new?module_group_guid=' . $_SESSION['module_group_guid']);
                     }
                 } else {
+                    // If no entries exist, directly replace batch
                     $this->db->replace_batch($table, $data, 'user_guid');
                 }
             }
@@ -2482,7 +2492,7 @@ class Module_setup_new extends CI_Controller
                     'sender' => $from_email->row('sender_email'),
                     'subject' => $email_subject,
                     'status' => 'FAIL',
-                    'respond_message' => $ereponse,
+                    'respond_message' => 'Error',
                     'smtp_server' => 'mailjet',
                     'smtp_port' => 'mailjet',
                     'smtp_security' => 'mailjet',
@@ -2492,7 +2502,7 @@ class Module_setup_new extends CI_Controller
                 //redirect('Email_controller/setup');
                 // if($module != 'alert_notification')
                 // {
-                return $result1->Messages[0]->Status . '_' . $ereponse;
+                return 'FAIL';
                 // };
             }
 
@@ -2507,7 +2517,7 @@ class Module_setup_new extends CI_Controller
                 'sender' => $from_email->row('sender_email'),
                 'subject' => $email_subject,
                 'status' => 'FAIL',
-                'respond_message' => $retry . $ereponse,
+                'respond_message' => 'Trigger Error '. $retry,
                 'smtp_server' => 'mailjet',
                 'smtp_port' => 'mailjet',
                 'smtp_security' => 'mailjet',
@@ -2517,7 +2527,7 @@ class Module_setup_new extends CI_Controller
             //redirect('Email_controller/setup');
             // if($module != 'alert_notification')
             // {
-            return $result1->Messages[0]->Status . $ereponse;
+            return 'Trigger Error -' . $retry;
         }
     }
 
@@ -2656,24 +2666,33 @@ class Module_setup_new extends CI_Controller
     }
 
     public function check_userid()
-{
-    $user_id = $this->input->post('userid');
-
-    $query = $this->db->get_where('set_user', array('user_id' => $user_id));
-    $result = $query->row();
-
-    $data = array(); // Prepare an array for the response data
-
-    if ($result) {
-        $data['status'] = 'exists';
-    } else {
-        $data['status'] = 'available';
+    {
+        $user_id = $this->input->post('userid');
+    
+        $query = $this->db->query("
+            SELECT DISTINCT a.acc_name, su.user_id
+            FROM lite_b2b.set_user AS su 
+            INNER JOIN lite_b2b.acc AS a ON su.acc_guid = a.acc_guid
+            WHERE su.user_id = '$user_id'
+        ");
+    
+        $data = array(); // Prepare an array for the response data
+    
+        if ($query->num_rows() > 0) {
+            $data['status'] = 'exists';
+            $data['acc_names'] = array(); // Prepare an array for acc_names
+    
+            foreach ($query->result() as $row) {
+                // Collect acc_name values into an array
+                $data['acc_names'][] = $row->acc_name;
+            }
+        } else {
+            $data['status'] = 'available';
+        }
+    
+        // Return the JSON response
+        header('Content-Type: application/json'); // Set header for JSON response
+        echo json_encode($data);
     }
-
-    // Return the JSON response
-    header('Content-Type: application/json'); // Set header for JSON response
-    echo json_encode($data);
-}
-
 
 }

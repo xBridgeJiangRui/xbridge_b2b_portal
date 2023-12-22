@@ -383,8 +383,11 @@ class Panda_other_doc extends CI_Controller
                 chmod($main_path, 0777);
             }
             $file_path = $this->db->query("SELECT file_path FROM acc WHERE acc_guid = '$customer_guid'")->row('file_path');
-            // echo $file_path.'<br>';
 
+            // if($customer_guid == 'C24990A0FDAE11ECA954A67EA5557007')
+            // {
+            // echo $file_path.'<br>'; die;
+            // }
             $filename2 = $main_path . substr($file_path, 0, strripos($file_path, '/'));
 
             $file_path_checking_2 = $filename2;
@@ -421,7 +424,11 @@ class Panda_other_doc extends CI_Controller
             // echo $file_path_checking2.$excel_file.'<br>';
 
             $file_path_checking3 = $file_path_checking2 . '/' . $excel_file;
-            // echo $file_path_checking3.'<br>';
+            // if($user_guid == '7BA14C79BDDB11EBB0C4000D3AA2838A')
+            // {
+            //     echo $file_path_checking3; die; ///media/b2b-pdf/acc_doc/uploads/tfvaluemart/PVV/PVV_20T051_CCCTBA22000964.xlsx
+            // }
+
             if (!file_exists($file_path_checking3)) {
                 $show_excel_button = 0;
                 $excel_file_path = '';

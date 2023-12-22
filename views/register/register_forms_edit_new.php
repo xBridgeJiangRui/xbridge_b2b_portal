@@ -468,7 +468,7 @@ input:focus {
                         ?> checked
                         > 
                         <?php 
-                      }else if($key->memo_type == 'outright' || $key->memo_type == 'waive_outright' || $key->memo_type == 'outright_iks')
+                      }else if($key->memo_type == 'outright' || $key->memo_type == 'waive_outright' || $key->memo_type == 'outright_iks' || $key->memo_type == 'both')
                       {?> checked
                         > 
                         <?php 
@@ -486,7 +486,7 @@ input:focus {
                       if($key->supply_consignment == 'consignment'){ 
                         ?> checked
                         > <?php 
-                      }else if($key->memo_type == 'consignment' || $key->memo_type == 'waive_consign' )
+                      }else if($key->memo_type == 'consignment' || $key->memo_type == 'waive_consign' || $key->memo_type == 'both')
                       {?> checked
                         > 
                         <?php 
@@ -1045,7 +1045,7 @@ input:focus {
                     <th> Vendor Name</th>
                     <th> Vendor Email</th>
                     <th style="width:30%;"> User Group</th>
-                    <th> <?php foreach ($register->result() as $key ) { ?> <?php echo $key->acc_name;?><?php } ?> </th>
+                    <th> <?php foreach ($get_acc_settings->result() as $key ) { ?> <?php echo strtoupper($key->azure_container_name);?><?php } ?> </th>
                     <th> Other Retailer </th>
                   </tr>
                 </thead>

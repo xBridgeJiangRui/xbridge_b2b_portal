@@ -213,9 +213,20 @@
         span_button_para += '<span class="pill_button"> '+gr_num+' </span>';
       }
 
-      if(gr_status != '' && gr_status != null)
+      if (gr_status != null) 
       {
-        span_button_para += '<span class="pill_button">'+gr_status+'</span>';
+        if (gr_status === 'geinv') 
+        {
+        span_button_para += '<span class="pill_button">New - Viewed - Printed</span>';
+        } 
+        else if (gr_status === '') 
+        {
+        span_button_para += '<span class="pill_button">New</span>';
+        } 
+        else 
+        {
+        span_button_para += '<span class="pill_button">' + gr_status + '</span>';
+        }
       }
 
       if(daterange != '' && daterange != null)

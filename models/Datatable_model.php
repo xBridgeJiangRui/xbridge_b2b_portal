@@ -126,7 +126,7 @@ class datatable_model extends CI_Model
         }
         else if($doc == 'si_table')
         {
-            $conditon = " WHERE (si_refno like '%$search%' or invoice_date like '%$search%' or Code like '%$search%' )";
+            $conditon = " WHERE (si_refno like '%$search%' or invoice_date like '%$search%' or Code like '%$search%' or `name` like '%$search%' )";
         }
         else if($doc == 'prdncn_table')
         {
@@ -139,6 +139,22 @@ class datatable_model extends CI_Model
         else if($doc == 'strb_table')
         {
             $conditon = " WHERE (batch_no like '%$search%' or location like '%$search%' or sup_name like '%$search%' or sup_code like '%$search%' or prdn_refno like '%$search%')";
+        }
+        else if($doc == 'user_table')
+        {
+            $conditon = " WHERE (acc_name like '%$search%' or supplier_name like '%$search%' or user_name like '%$search%' or user_id like '%$search%' or user_group_name like '%$search%' or status_naming like '%$search%')";
+        }
+        else if($doc == 'user_count')
+        {
+            $conditon = " WHERE (acc_name like '%$search%' or supplier_name like '%$search%' or user_count like '%$search%' or invoice_number like '%$search%' )";
+        }
+        else if($doc == 'supplier_table')
+        {
+            $conditon = " WHERE (supplier_name like '%$search%' or reg_no like '%$search%' or acc_code like '%$search%' or payment_term like '%$search%' or created_at like '%$search%' )";
+        }
+        else if($doc == 'int_supplier_table')
+        {
+            $conditon = " WHERE (supplier_name like '%$search%' or reg_no like '%$search%' or acc_code like '%$search%' or created_at like '%$search%' or naming_status like '%$search%' )";
         }
 
         $sql = $sql.$conditon;

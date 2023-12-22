@@ -260,7 +260,7 @@ class b2b_po extends CI_Controller
                     $tab = array();
                     
                     $tab["refno"] = '<span style="display:flex;">' . $row->refno . '<i data-toggle="tooltip" data-placement="top" title="Click to preview item details" class="fa fa-info-circle" style="padding-top:5px;padding-left:10px;cursor: pointer;"  id="preview_po_item_line" refno=' . $row->refno . '></i></span>';
-                    $tab["grn_refno"] = '<a href="'. base_url() .'index.php/panda_gr/' . $module . '?trans=' . $row->grn_refno . '&loc=' . $_SESSION['po_loc'] . '&fmodule=1">' . $row->grn_refno . '</a>';
+                    $tab["grn_refno"] = '<a href="'. base_url() .'index.php/b2b_gr/' . $module . '?trans=' . $row->grn_refno . '&loc=' . $_SESSION['po_loc'] . '&fmodule=1">' . $row->grn_refno . '</a>';
                     $tab["loc_group"] = $row->loc_group;
                     $tab["supplier_code"] = $row->supplier_code;
                     $tab["supplier_name"] = $row->supplier_name;
@@ -270,23 +270,23 @@ class b2b_po extends CI_Controller
                     $tab['amount'] = "<span class='pull-right'>" . number_format($row->amount, 2) . "</span>";
                     $tab['tax'] = "<span class='pull-right'>" . number_format($row->tax, 2) . "</span>";
                     $tab['total_include_tax'] = "<span class='pull-right'>" . number_format($row->total_include_tax, 2) . "</span>";
-                    $tab["status"] = $row->status; //ucfirst()
+                    $tab["status"] = $row->status;
                     $tab["rejected_remark"] = $row->rejected_remark;
 
                     if (in_array('HFSP', $_SESSION['module_code']) && $this->session->userdata('customer_guid') != '8D5B38E931FA11E79E7E33210BD612D3') {
 
                         if($row->status == '')
                         {
-                            $tab["action"] = "<a href=" . site_url('json/b2b_po/po_child') . "?trans=" . $row->refno . "&loc=" . $_SESSION['po_loc'] . "&accpt_po_status=" . $row->status . " style='float:left' class='btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
+                            $tab["action"] = "<a href=" . site_url('b2b_po/po_child') . "?trans=" . $row->refno . "&loc=" . $_SESSION['po_loc'] . "&accpt_po_status=" . $row->status . " style='float:left' class='btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
                             <button id='hide_doc_btn' class='btn btn-sm btn-danger' style='float:left;margin-left:2px;' refno='" . $row->refno . "' loc='" . $_SESSION['po_loc'] . "''><span class='fa fa-eye-slash'></span></button> ";
                         }
                         else
                         {
-                            $tab["action"] = "<a href=" . site_url('json/b2b_po/po_child') . "?trans=" . $row->refno . "&loc=" . $_SESSION['po_loc'] . "&accpt_po_status=" . $row->status . " style='float:left' class='btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a> ";
+                            $tab["action"] = "<a href=" . site_url('b2b_po/po_child') . "?trans=" . $row->refno . "&loc=" . $_SESSION['po_loc'] . "&accpt_po_status=" . $row->status . " style='float:left' class='btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a> ";
                         }
 
                     } else {
-                        $tab["action"] = "<a href=" . site_url('json/b2b_po/po_child') . "?trans=" . $row->refno . "&loc=" . $_SESSION['po_loc'] . "&accpt_po_status=" . $row->status . " style='float:left' class='btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a> ";
+                        $tab["action"] = "<a href=" . site_url('b2b_po/po_child') . "?trans=" . $row->refno . "&loc=" . $_SESSION['po_loc'] . "&accpt_po_status=" . $row->status . " style='float:left' class='btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a> ";
                         //$tab["action"] = "<a href=" . site_url('b2b_po/po_child') . "?trans=" . $row->refno . "&loc=" . $_SESSION['po_loc'] . " style='float:left' class='btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                     }
                     $tab["chkb"] = '<input type="checkbox" class="data-check" value="' . $row->refno . '">';
@@ -348,6 +348,7 @@ class b2b_po extends CI_Controller
                 ");
                 
                 $this->db->query("UPDATE b2b_summary.pomain set status = 'viewed' where customer_guid ='$customer_guid' and refno = '$refno' and status = '' ");
+                $this->db->query("UPDATE b2b_summary.pomain_info set status = 'viewed' where customer_guid ='$customer_guid' and refno = '$refno' and status = '' ");
 
             
             };
@@ -356,25 +357,23 @@ class b2b_po extends CI_Controller
             $check_scode = $this->db->query("SELECT supplier_code AS scode from b2b_summary.pomain_info where refno = '$refno' and customer_guid = '".$_SESSION['customer_guid']."'")->row('scode');
 
             $check_scode = str_replace("/","+-+",$check_scode);
-            
-            // test case 001
-            // $parameter = $this->db->query("SELECT * from menu where module_link = '".$_SESSION['frommodule']."'");
-            // $type = $parameter->row('type');
-            // $code = $check_scode;
 
-            // $replace_var = $this->db->query("SELECT REPLACE(REPLACE(REPLACE(filename_format, 'type', '$type'), 'code', '$code'), 'refno' , '$refno') AS query FROM menu where module_link = '".$_SESSION['frommodule']."'")->row('query');
+            $parameter = $this->db->query("SELECT * from menu where module_link = '".$_SESSION['frommodule']."'");
+            $type = $parameter->row('type');
+            $code = $check_scode;
 
-            // $virtual_path = $this->db->query("SELECT file_path FROM acc WHERE acc_guid = '".$_SESSION['customer_guid']."'")->row('file_path');
+            $replace_var = $this->db->query("SELECT REPLACE(REPLACE(REPLACE(filename_format, 'type', '$type'), 'code', '$code'), 'refno' , '$refno') AS query FROM menu where module_link = '".$_SESSION['frommodule']."'")->row('query');
+
+            $virtual_path = $this->db->query("SELECT file_path FROM acc WHERE acc_guid = '".$_SESSION['customer_guid']."'")->row('file_path');
            
-            // $filename = base_url($virtual_path.'/'.$replace_var.'.pdf');
-            // test case 001
+            $filename = base_url($virtual_path.'/'.$replace_var.'.pdf');
  
             //$file_headers = @get_headers($filename);
             //remove , rejected_remark
             $check_status = $this->db->query("SELECT refno, if(status = '', 'Pending', status) as status from b2b_summary.pomain_info where refno = '$refno' and customer_guid = '".$_SESSION['customer_guid']."'");
 
             // $set_code = $this->db->query("SELECT code,reason from  set_setting where module_name = 'PO' order by reason asc");
-            $set_code = $this->db->query("SELECT code,portal_description as reason from status_setting where type = 'reject_po' AND isactive = 1 order by portal_description asc");
+            $set_code = $this->db->query("SELECT code,portal_description as reason from status_setting where type = 'reject_po' AND isactive = 1 order by sort asc");
             $set_admin_code = $this->db->query("SELECT code,reason from  set_setting where module_name = 'ADMIN' order by reason asc");
 
             $subscribe_edi = $this->db->query("SELECT b.subscribe_edi
@@ -436,10 +435,22 @@ class b2b_po extends CI_Controller
                 $hide_url = '';
             }
 
+            $hide_report_toolbar = 0;
+            if(!in_array($check_status->row('status'), ['Accepted','gr_completed'])){
+                $get_current_settings = $this->db->query("SELECT * FROM lite_b2b.acc_settings WHERE customer_guid = '$customer_guid'");
+
+                // $check_movement = $this->db->query("SELECT COUNT(*) AS `count` FROM lite_b2b.supplier_movement WHERE `value` = '$refno' and customer_guid = '".$customer_guid."' and action = 'accepted_po'")->row('count');
+
+                if($get_current_settings->row('supplier_mandatory_to_accept_po') == 1){
+                    $hide_report_toolbar = 1;
+                }
+
+            }
+
             $data = array(
-                'filename' => $filename,
-                'file_headers' => $file_headers,
-                'virtual_path' => $virtual_path,
+                'filename' => isset($filename) ? $filename : '',
+                'file_headers' => isset($file_headers) ? $file_headers : array(),
+                'virtual_path' => isset($virtual_path) ? $virtual_path : '',
                 'title' => 'Purchase Order',
                 'check_status' => $check_status,
                 'set_code' => $set_code,
@@ -448,7 +459,8 @@ class b2b_po extends CI_Controller
                 'show_action_button' => $show_action_button,
                 'show_action_button2' => $show_action_button2,
                 'hide_url' => $hide_url,
-                'request_link' => site_url('json/B2b_po/po_report?refno='.$refno), //site_url('B2b_po/po_report?refno='.$refno)
+                'hide_report_toolbar' => $hide_report_toolbar,
+                'request_link' => site_url('B2b_po/po_report?refno='.$refno), //site_url('B2b_po/po_report?refno='.$refno)
             );
 
             $data_footer = array(
@@ -503,7 +515,7 @@ class b2b_po extends CI_Controller
                         'issuedby',
                     );  
     
-                    $headers[] = $key;
+                    $headers[] = isset($key) ? $key : '';
                 }
 
                 foreach(json_decode($get_po_child_data, true)['pomain'] as $main) 
@@ -547,7 +559,7 @@ class b2b_po extends CI_Controller
             else
             {                     
                 $this->session->set_flashdata("noconnection", '<div class="alert alert-warning fade in">Error Connecting Client Server. </div>');
-                    redirect('json/b2b_po/po_child?trans='.$refno.'&loc='.$loc.'');
+                    redirect('b2b_po/po_child?trans='.$refno.'&loc='.$loc.'');
             }
         }
         else
@@ -831,19 +843,19 @@ class b2b_po extends CI_Controller
                         $this->Po_model->update_accepted($table,$p_accepted);
                        // echo $this->db->last_query();die;
                         $this->session->set_flashdata('message', 'PO is Partially Accepted.');
-                        redirect('json/b2b_po/po_child?trans='.$_SESSION['refno']);
+                        redirect('b2b_po/po_child?trans='.$_SESSION['refno']);
                     }
                     else
                     {
                         $this->session->set_flashdata('message', 'PO Accepted.');
-                        redirect('json/b2b_po/po_child?trans='.$_SESSION['refno']);
+                        redirect('b2b_po/po_child?trans='.$_SESSION['refno']);
                     };
                 //echo $this->db->last_query();die;
             }
             else
             {
                 $this->session->set_flashdata('message', 'Document status is not Pending. Please make sure PO status is Pending before making any changes.');
-                redirect('json/b2b_po/po_child?trans='.$_SESSION['refno']);
+                redirect('b2b_po/po_child?trans='.$_SESSION['refno']);
             };
 
 
@@ -884,12 +896,12 @@ class b2b_po extends CI_Controller
                     'rejected_at' => $this->db->query("SELECT now() as now")->row('now'),
                         );
                     $this->Po_model->update_accepted($table,$data);
-                    redirect('json/b2b_po/po_child?trans='.$_SESSION['refno']);
+                    redirect('b2b_po/po_child?trans='.$_SESSION['refno']);
                 }
                 else
                 {
                      $this->session->set_flashdata('message', 'Document status is not Pending. Please make sure PO status is Pending before making any changes.');
-                    redirect('json/b2b_po/po_child?trans='.$_SESSION['refno']);
+                    redirect('b2b_po/po_child?trans='.$_SESSION['refno']);
                 }
 
         }
@@ -897,6 +909,31 @@ class b2b_po extends CI_Controller
         {
             redirect('#');
         }
+    }
+
+    public function bulk_print_check_status()
+    {
+        $refno = $this->input->post('list_id');
+        $customer_guid = $_SESSION['customer_guid'];
+
+        $get_current_settings = $this->db->query("SELECT * FROM lite_b2b.acc_settings WHERE customer_guid = '$customer_guid'");
+
+        foreach($refno as $row)
+        {
+            $check_status = $this->db->query("SELECT refno, if(status = '', 'Pending', status) as status from b2b_summary.pomain_info where refno = '$row' and customer_guid = '".$customer_guid."'");
+
+            if(!in_array($check_status->row('status'), ['Accepted','gr_completed'])){
+
+                // $check_movement = $this->db->query("SELECT COUNT(*) AS `count` FROM lite_b2b.supplier_movement WHERE `value` = '$row' and customer_guid = '".$customer_guid."' and action = 'accepted_po'")->row('count');
+
+                if($get_current_settings->row('supplier_mandatory_to_accept_po') == 1){
+                    echo 0;
+                    die;
+                }
+            }
+        }
+
+        echo 1;
     }
 
     public function bulk_accept()
@@ -990,7 +1027,7 @@ class b2b_po extends CI_Controller
         $cloud_directory = $cloud_directory . $customer_guid . '/PO/';
 
         // check if pdf file already exist
-        if (file_exists($cloud_directory.$refno.'.pdf')) {
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
 
             $curl = curl_init();
 

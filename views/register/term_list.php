@@ -163,7 +163,10 @@ $(document).ready(function() {
              { "data": "created_by" },
 
              ],
-    dom: "<'row'<'col-sm-4'l><'col-sm-8'f>>rtip",
+             dom: "<'row'<'col-sm-2'l><'col-sm-4'><'col-sm-6'f>>Brtip",
+              buttons: [
+                  'excel'
+              ],
     // "pagingType": "simple",
     "fnCreatedRow": function( nRow, aData, iDataIndex ) {
       $(nRow).attr('guid', aData['guid']);
@@ -614,7 +617,10 @@ $(document).ready(function() {
        
               }},
               ],
-            dom: "<'row'<'col-sm-4'l><'col-sm-8'f>>rtip",  
+              dom: "<'row'<'col-sm-4'l><'col-sm-8'f>>Brti",
+              buttons: [
+                  'excel'
+              ], 
            "fnCreatedRow": function( nRow, aData, iDataIndex ) {
               //$(nRow).closest('tr').css({"cursor": "pointer"});
             // $(nRow).attr('status', aData['status']);
@@ -703,7 +709,10 @@ $(document).ready(function() {
        
               }},
               ],
-            dom: "<'row'<'col-sm-4'l><'col-sm-8'f>>rtip",  
+              dom: "<'row'<'col-sm-4'l><'col-sm-8'f>>Brti",
+              buttons: [
+                  'excel'
+              ], 
            "fnCreatedRow": function( nRow, aData, iDataIndex ) {
               //$(nRow).closest('tr').css({"cursor": "pointer"});
             // $(nRow).attr('status', aData['status']);

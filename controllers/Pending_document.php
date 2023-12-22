@@ -29,10 +29,16 @@ class Pending_document extends CI_Controller
 
             $acc = $this->db->query("SELECT * FROM lite_b2b.acc WHERE isactive = '1' ");
 
+            $acc_name = $this->db->query("SELECT * FROM lite_b2b.acc WHERE isactive = '1' AND acc_guid = '$acc_guid' ")->row('acc_name');
+
+            // echo $this->db->last_query();die;
+
             $data = array(
                 'supplier' => $supplier->result(),
                 'acc' => $acc->result(),
+                'acc_name' => $acc_name,
             );
+
             $this->load->view('header');
             $this->load->view('b2b_document_dashboard', $data);      
             $this->load->view('footer');
@@ -228,8 +234,10 @@ class Pending_document extends CI_Controller
     public function resync_data()
     {
       ini_set('max_execution_time', 0);
-      $to_shoot_url = 'https://api.xbridge.my/rest_b2b/index.php/Get_pending_document?uploaded_status=0&uploaded_status_strb=0&tf_uploaded_status=99&tf_uploaded_status_strb=0';
-      //echo $to_shoot_url;die;
+      $customer_guid = $_SESSION['customer_guid'];
+      
+      $to_shoot_url = 'https://api.xbridge.my/rest_b2b/index.php/Get_pending_document?uploaded_status=0&uploaded_status_strb=0&tf_uploaded_status=99&tf_uploaded_status_strb=0&customer_guid='.$customer_guid;
+      // echo $to_shoot_url;die;
       $data2 = array();
 
       $cuser_name = 'ADMIN';

@@ -1485,7 +1485,9 @@ class Supplier_setup_new extends CI_Controller
         }
 
         $dropdown = '';
-        $dropdown .= '<div class="form-group"  id="div' . $no . '"><label class="control-label col-md-3">Supplier Name</label><div class="col-md-7"><select id="supplier_name' . $no . '" no=' . $no . ' name="supplier_name" class="supplier_name form-control" style="width: 100%;">';
+
+        // add select2 on 15/12/2023
+        $dropdown .= '<div class="form-group"  id="div' . $no . '"><label class="control-label col-md-3">Supplier Name</label><div class="col-md-7"><select id="supplier_name' . $no . '" no=' . $no . ' name="supplier_name" class="supplier_name form-control select2" style="width: 100%;">';
         $dropdown .= '<option required data-default value="">Please Select A Supplier</option>';
         foreach ($supplier_name->result() as $row) {
             if (!in_array($row->supplier_guid, $supplier_code_array)) {
@@ -1604,6 +1606,8 @@ class Supplier_setup_new extends CI_Controller
             // print_r($selected_supplier_code_array);
             // echo $row->supplier_guid.'->'.$row->supplier_name.'<br>';
             if ($i == 0) {
+
+                // Add select2 on 15/12/2023
                 $dropdown .= '<div class="form-group"  id="div0"><label class="control-label col-md-3">Supplier Name</label><div class="col-md-7"><select id="supplier_name0" no="0" name="supplier_name" class="supplier_name form-control select2" style="width: 100%;">';
                 $dropdown .= '<option required data-default value="">Please Select A Supplier</option>';
                 foreach ($result1->result() as $row1) {
@@ -1623,6 +1627,8 @@ class Supplier_setup_new extends CI_Controller
                 }
                 $dropdown .= '</select></div></div>';
             } else {
+
+                // Add select2 on 15/12/2023
                 $dropdown .= '<div class="form-group"  id="div' . $no . '"><label class="control-label col-md-3">Supplier Name</label><div class="col-md-7"><select id="supplier_name' . $no . '" no="' . $no . '" name="supplier_name" class="supplier_name form-control select2" style="width: 100%;">';
                 $dropdown .= '<option required data-default value="">Please Select A Supplier</option>';
                 foreach ($result1->result() as $row1) {

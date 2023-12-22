@@ -716,32 +716,41 @@
         });
 
         $('#userid').on('input paste', function() {
-    var $this = $(this);
+        var $this = $(this);
 
-    // Delay execution by 100 milliseconds to capture pasted content
-    setTimeout(function() {
-        var userid = $this.val();
+        // Delay execution by 100 milliseconds to capture pasted content
+        setTimeout(function() {
+            var userid = $this.val();
 
-        $.ajax({
-            url: "<?php echo site_url('Module_setup_new/check_userid') ?>",
-            method: "POST",
-            data: { userid: userid },
-            success: function(response) {
-                if (response.status === 'exists') {
-                    alert('User ID already exists!');
-                    // Additional actions if needed when the user ID exists
-                } else {
-                    // Additional actions if needed when the user ID is available
+            $.ajax({
+                url: "<?php echo site_url('Module_setup_new/check_userid') ?>",
+                method: "POST",
+                data: { userid: userid },
+                success: function(response) {
+                    if (response.status === 'exists' && response.acc_names && response.acc_names.length > 0) {
+                        var retailersMessage = 'User ID already exists in below retailer!\n';
+
+                        // Constructing a numbered list of retailers
+                        response.acc_names.forEach(function(retailer, index) {
+                            retailersMessage += (index + 1) + '. ' + retailer + '\n';
+                        });
+
+                        alert(retailersMessage);
+                        // Additional actions if needed when distinct acc_names are available
+                    } else if (response.status === 'exists') {
+                        // Alert when user ID exists but no retailers found
+                        alert('User ID already exists, but no retailers associated.');
+                    } 
+                },
+                
+                error: function(xhr, status, error) {
+                    console.error('AJAX error:', error);
+                    alert('Oops! Something went wrong. Please contact handsome chee ming');
+                    // Handle any AJAX errors
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('AJAX error:', error);
-                alert('Oops! Something went wrong. Please contact handsome chee ming');
-                // Handle any AJAX errors
-            }
-        });
-    }, 100); // Adjust this delay (in milliseconds) as needed
-});
+            });
+        }, 100); // Adjust this delay (in milliseconds) as needed
+    });
 
         $(document).on('click', '#user_module_all', function() {
             // alert();

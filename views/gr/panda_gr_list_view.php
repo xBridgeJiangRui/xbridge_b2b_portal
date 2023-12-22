@@ -476,9 +476,9 @@ $(document).on('click','#grn_bulk_generate_e_invoice',function(){
     alertmodal('Please select at least one record(s) to proceed.');
     return;
   }
-  else if(invno_array.length > '5')
+  else if(invno_array.length > '10')
   {
-    alertmodal('Please select only maximum 5 GRN to proceed.');
+    alertmodal('Please select only maximum 10 GRN to proceed.');
     return;
   }
 

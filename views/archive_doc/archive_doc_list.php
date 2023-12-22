@@ -44,14 +44,14 @@
               <div class="col-md-4">
                 <select name="doc_type" id="doc_type" class="form-control">
                   <option value="" disabled selected>-Select Document Type-</option>
-                  <!-- <option value="pomain">Purchase Order (PO)</option> -->
-                  <!-- <option value="grmain">Goods Received Note (GRN)</option>  -->
-                  <!-- <option value="grda">Goods Received Diff Advice (GRDA)</option>  -->
+                  <option value="pomain">Purchase Order (PO)</option>
+                  <option value="grmain">Goods Received Note (GRN)</option> 
+                  <option value="grda">Goods Received Diff Advice (GRDA)</option> 
                   <option value="dbnotemain">Purchase Return DN (PRDN)</option> 
-                  <!-- <option value="cnnotemain"> Purchase Return CN (PRCN)</option>  -->
-                  <!-- <option value="cndn_amt">Purchase DN/CN (PDN)</option>  -->
+                  <option value="cnnotemain"> Purchase Return CN (PRCN)</option> 
+                  <option value="cndn_amt">Purchase DN/CN (PDN)</option> 
                   <option value="pci">Promotion Claim Tax Invoice (PCI)</option> 
-                  <option value="display_incentive">Display Incentive (DI)</option>
+                  <!-- <option value="display_incentive">Display Incentive (DI)</option> -->
                 </select>
               </div>
               <div class="clearfix"></div><br>
@@ -236,7 +236,21 @@ $(document).ready(function() {
         "bScrollCollapse": true,
           data: json['query_data'],
           columns: [
-                    { "data": "refno" },
+                    { "data": "refno" ,render:function( data, type, row, meta ){
+                        var element = '';
+                        var element1 = row['transtype'];
+                        
+                        if(element1 != '' && element1 != null && element1 != 'null')
+                        {
+                          element += data + '-' + element1;
+                        }
+                        else
+                        {
+                          element += data;
+                        }
+                        
+                        return element;
+                    }},
                     { "data": "promo_refno" },
                     { "data": "document_date" },
                     { "data": "location" },

@@ -139,7 +139,7 @@ class b2b_prdncn extends CI_Controller
             } elseif ($status == 'READ') {
                 $status_in = " WHERE a.type IN ('','DEBIT','CN') AND a.`status` IN ('printed', 'viewed') ";
             } elseif ($status == 'UNREAD') {
-                $status_in = " WHERE a.type IN ('','DEBIT','CN') ";
+                $status_in = " WHERE a.type IN ('','DEBIT','CN') AND a.`status` IN ('','NEW') ";
             } elseif ($status == 'ALL') {
                 $get_stat = $this->db->query("SELECT code from set_setting where module_name = 'PRDNCN_FILTER_STATUS'");
 
@@ -342,15 +342,15 @@ class b2b_prdncn extends CI_Controller
 
                     if($row->batch_no == '' || $row->batch_no == 'null' || $row->batch_no == null)
                     {
-                        $tab['button'] = "<a href=" . site_url('json/b2b_prdncn/prdncn_child') . "?trans=" . $row->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $row->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                        $tab['button'] = "<a href=" . site_url('b2b_prdncn/prdncn_child') . "?trans=" . $row->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $row->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                     }
                     else if($row->uploaded_image == '0')
                     {
-                        $tab['button'] = "<a href=" . site_url('json/b2b_prdncn/prdncn_child') . "?trans=" . $row->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $row->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                        $tab['button'] = "<a href=" . site_url('b2b_prdncn/prdncn_child') . "?trans=" . $row->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $row->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                     }
                     else
                     {
-                        $tab['button'] = "<a href=" . site_url('json/b2b_prdncn/prdncn_child') . "?trans=" . $row->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $row->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
+                        $tab['button'] = "<a href=" . site_url('b2b_prdncn/prdncn_child') . "?trans=" . $row->refno . "&loc=" . $_REQUEST['loc'] . "&type=" . $row->type . " style='margin-left:5px;' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>
                         <button style='margin-left:5px;' id='btn_image' type='button'  title='IMAGE' class='btn btn-sm btn-warning' refno=" . $row->batch_no . " period_code=" . $row->strb_doc_date . " outlet=" . $row->loc_group . " image_type='STRB'><i class='fa fa-file-image-o'></i></button>";
                     }
 
@@ -512,7 +512,7 @@ class b2b_prdncn extends CI_Controller
                 'strb_refno' => $check_strb_data->row('batch_no'),
                 'strb_docdate' => $check_strb_data->row('docdate'),
                 'valid_reupload_time' => $check_upload_doc_log->row('valid_reupload'),
-                'request_link' => site_url('json/B2b_prdncn/prdncn_report?refno='.$refno.'&type='.$xtype),
+                'request_link' => site_url('B2b_prdncn/prdncn_report?refno='.$refno.'&type='.$xtype),
             );
             // echo $filename;die;
             $customer_guid = $_SESSION['customer_guid'];        
@@ -575,6 +575,7 @@ class b2b_prdncn extends CI_Controller
         $refno = $_REQUEST['refno'];
         $doc_type = $_REQUEST['type'];
         $customer_guid = $this->session->userdata('customer_guid');
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
         $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
         $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
 
@@ -589,7 +590,7 @@ class b2b_prdncn extends CI_Controller
         $cloud_directory = $cloud_directory . $customer_guid . '/' . $doc_type . '/';
 
         // check if pdf file already exist
-        if (file_exists($cloud_directory.$refno.'.pdf')) {
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
 
             $curl = curl_init();
 
@@ -621,13 +622,13 @@ class b2b_prdncn extends CI_Controller
         
         if($doc_type == 'CN')
         {
-            $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PRCN/main_jrxml.pdf?refno=".$refno."&customer_guid=".$customer_guid;
+            $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PRCN/main_jrxml.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode;
 
             $check_code = $this->db->query("SELECT a.supplier_code from b2b_summary.cnnotemain_info a where a.refno = '$refno' and a.customer_guid = '" . $_SESSION['customer_guid'] . "' GROUP BY a.refno")->row('supplier_code');
         }
         else 
         {
-            $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PRDN/main_jrxml.pdf?refno=".$refno."&customer_guid=".$customer_guid;
+            $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PRDN/main_jrxml.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode;
 
             $check_code = $this->db->query("SELECT a.supplier_code from b2b_summary.dbnotemain_info a where a.refno = '$refno' and a.customer_guid = '" . $_SESSION['customer_guid'] . "' GROUP BY a.refno")->row('supplier_code');
         }
@@ -798,7 +799,8 @@ class b2b_prdncn extends CI_Controller
             if ($get_supplier_guid == '' || $get_supplier_guid == null) 
             {
                 $this->session->set_flashdata('message', 'Supplier ID Empty, Please Contact Admin.');
-                redirect('panda_prdncn/prdncn_child?trans='.$refno.'&loc='.$loc.'&type='.$doc_type);
+                // redirect('panda_prdncn/prdncn_child?trans='.$refno.'&loc='.$loc.'&type='.$doc_type);
+                redirect('panda_prdncn/prdncn_child');
             } 
 
             $path_seperator = $this->file_config_b2b->path_seperator($customer_guid,'web','general_doc','path_seperator','PS');

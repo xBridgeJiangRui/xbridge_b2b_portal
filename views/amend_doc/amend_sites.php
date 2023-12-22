@@ -33,6 +33,20 @@
               </div>
               <div class="clearfix"></div><br>
 
+              <div class="col-md-2"><b>Posted Period Code<br>(YYYY-MM)</b></div>
+              <div class="col-md-4">
+                <select name="doc_period_code" id="doc_period_code" class="form-control">
+                  <?php foreach($period_code->result() as $row)
+                  { 
+                    ?>
+                    <option value="<?php echo $row->period_code ?>" ><?php echo $row->period_code; ?></option>
+                    <?php 
+                  } 
+                  ?>
+                </select> 
+              </div>
+              <div class="clearfix"></div><br>
+
               <div class="col-md-2"><b>Action Type</b></div>
               <div class="col-md-4">
                 <select name="action_type" id="action_type" class="form-control">
@@ -264,6 +278,7 @@ $(document).ready(function() {
     var refno = $(this).val();
     var doc_type = $('#doc_type').val();
     var action_type = $('#action_type').val();
+    var doc_period_code = $('#doc_period_code').val();
 
     if((doc_type == '') || (doc_type == 'null') || (doc_type == null))
     {
@@ -277,18 +292,25 @@ $(document).ready(function() {
       return;
     }
 
+    if((doc_period_code == '') || (doc_period_code == 'null') || (doc_period_code == null))
+    {
+      alert('Please insert Posted Date Period Code.');
+      return;
+    }
+
     if(refno != '')
     {
        $.ajax({
        url : "<?php echo site_url('amend_doc/fetch_ref_no'); ?>",
        method:"POST",
-       data:{refno:refno,doc_type:doc_type,action_type:action_type},
+       data:{refno:refno,doc_type:doc_type,action_type:action_type,doc_period_code:doc_period_code},
        success:function(data)
        {
 
         json = JSON.parse(data); 
         if (json.para1 == '1') {
           alert(json.msg);
+          $('#ref_num').html(''); 
         }
         else
         {
@@ -317,6 +339,7 @@ $(document).ready(function() {
     var doc_type = $('#doc_type').val();
     var action_type = $('#action_type').val();
     var remark = $('#insert_remark').val();
+    var doc_period_code = $('#doc_period_code').val();
 
     if(action_type != 'before_go_live')
     {
@@ -357,13 +380,19 @@ $(document).ready(function() {
       return;
     }
 
+    if((doc_period_code == '') || (doc_period_code == 'null') || (doc_period_code == null))
+    {
+      alert('Please insert Posted Period Code.');
+      return;
+    }
+
     confirmation_modal('Are you sure want to do Action?');
 
     $(document).off('click', '#confirmation_yes').on('click', '#confirmation_yes', function(){
       $.ajax({
           url:"<?php echo site_url('amend_doc/run_amend_function');?>",
           method:"POST",
-          data:{ref_no:ref_no,doc_type:doc_type,action_type:action_type,period_code:period_code,remark:remark},
+          data:{ref_no:ref_no,doc_type:doc_type,action_type:action_type,period_code:period_code,remark:remark,doc_period_code:doc_period_code},
           beforeSend:function(){
             $('.btn').button('loading');
           },

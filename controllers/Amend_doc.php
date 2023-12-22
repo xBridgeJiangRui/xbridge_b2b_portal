@@ -20,6 +20,7 @@ class Amend_doc extends CI_Controller {
 
       $data = array(
         'customer_name' => $customer_name,  
+        'period_code' => $this->db->query("SELECT period_code FROM lite_b2b.list_period_code ORDER BY period_code DESC "),
       );
 
       $this->load->view('header'); 
@@ -38,14 +39,15 @@ class Amend_doc extends CI_Controller {
     $refno = $this->input->post('refno');
     $doc_type = $this->input->post('doc_type');
     $action_type = $this->input->post('action_type');
+    $doc_period_code = $this->input->post('doc_period_code');
     $customer_guid = $_SESSION['customer_guid'];
     $query_loc = $_SESSION['query_loc'];
 
     //$ref_no_array = implode("','",$refno);
     //$ref_no_array = "".$ref_no_array."";
-    $set_date = date('Y-m-04');
+    $set_date = date('Y-m');
     $cur_date = $this->db->query("SELECT CURDATE() as curdate")->row('curdate');
-    if($cur_date <= $set_date)
+    if($doc_period_code < $set_date)
     {
       $data = array(
         'para1' => 1,
@@ -676,6 +678,7 @@ class Amend_doc extends CI_Controller {
     $action_type = $this->input->post('action_type');
     $remark = $this->input->post('remark');
     $period_code = $this->input->post('period_code');
+    $doc_period_code = $this->input->post('doc_period_code');
     $customer_guid = $_SESSION['customer_guid'];
     $controller = $this->router->fetch_class();
     $function = $this->router->fetch_method();
@@ -693,9 +696,9 @@ class Amend_doc extends CI_Controller {
       //print_r(count($ref_no_array)); echo '<br/>';
       //print_r($ref_no_array); die;
 
-      $set_date = date('Y-m-04');
+      $set_date = date('Y-m');
       $cur_date = $this->db->query("SELECT CURDATE() as curdate")->row('curdate');
-      if($cur_date <= $set_date)
+      if($doc_period_code < $set_date)
       {
         $data = array(
           'para1' => 1,

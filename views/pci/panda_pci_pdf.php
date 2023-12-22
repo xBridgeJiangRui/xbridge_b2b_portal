@@ -47,36 +47,54 @@
         </div>
       <div class="box-body">
         <div class="col-md-12">
-                <div class="col-md-12"  style="overflow-x:auto"> 
-                     <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
+                <!-- <div class="col-md-12"  style="overflow-x:auto">  -->
+
+                  <?php if($view_json == '1')
+                  {
+                    ?>
+                    <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
+                      <div id="accconceptCheck">
+                        <embed id="embed" height="750px" width="100%" src="<?= $request_link; ?>"></embed>
+                      </div>
+                    </div>
+                    <?php
+                  }
+                  else
+                  {
+                    ?>
+
+                    <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
 
                       <?php 
 
-                  $ua = strtolower($_SERVER['HTTP_USER_AGENT']);
+                      $ua = strtolower($_SERVER['HTTP_USER_AGENT']);
 
 
-                  if(strstr(strtolower($_SERVER['HTTP_USER_AGENT']), 'mobile') || strstr(strtolower($_SERVER['HTTP_USER_AGENT']), 'android')) { // && stripos($ua,'mobile') !== false) { ?>
+                      if(strstr(strtolower($_SERVER['HTTP_USER_AGENT']), 'mobile') || strstr(strtolower($_SERVER['HTTP_USER_AGENT']), 'android')) { // && stripos($ua,'mobile') !== false) { ?>
 
-                  <embed src="https://docs.google.com/gview?embedded=true&url=<?php echo $filename; ?>&amp;embedded=true" width="100%"  style="border: none;height:20em"/> 
+                      <embed src="https://docs.google.com/gview?embedded=true&url=<?php echo $filename; ?>&amp;embedded=true" width="100%"  style="border: none;height:20em"/> 
 
-                  <?php  } else { ?>
+                      <?php  } else { ?>
 
-                  <?php if($file_headers[0] != 'HTTP/1.1 404 Not Found') { ?>
-                        <embed src="<?php echo $filename.'?time='.date("Y_m_d_h_i_s"); ?>" width="100%" height="500px" style="border: none;"/> If browser does not support PDFs. Please download the PDF to view it: <a href="<?php echo $filename; ?>" download>Download PDF</a> 
-                    <?php } else 
-                        {  
-                          echo 'pdf not found'; 
-                        }
-                    ?>
+                      <?php if($file_headers[0] != 'HTTP/1.1 404 Not Found') { ?>
+                            <embed src="<?php echo $filename.'?time='.date("Y_m_d_h_i_s"); ?>" width="100%" height="500px" style="border: none;"/> If browser does not support PDFs. Please download the PDF to view it: <a href="<?php echo $filename; ?>" download>Download PDF</a> 
+                        <?php } else 
+                            {  
+                              echo 'pdf not found'; 
+                            }
+                        ?>
 
 
-                  <?php } ?>
+                      <?php } ?>
 
-                  
+                      
 
-                    
-                </div>
-                </div>
+                        
+                    </div>
+                    <?php
+                  }
+                  ?>
+                <!-- </div> -->
              <!-- <p><a href="Panda_home/logout">Logout</a></p> -->
 
         </div>

@@ -194,7 +194,7 @@ class b2b_billing_invoice_controller extends CI_Controller {
 
         if ($_SESSION['user_group_name'] == "SUPER_ADMIN" || $_SESSION['user_group_name'] == 'CUSTOMER_ADMIN_TESTING_USE' ) {
             
-            $sql = "SELECT * FROM (SELECT a.`inv_guid`, a.`name`, a.`invoice_number`, a.`inv_status`, a.`period_code`, a.`total_include_tax`, a.`final_amount`, a.`created_at`, a.`biller_guid`, IFNULL(b.`status`, '') AS file_status, IFNULL(b.`created_at`, '') AS slip_created_at, IFNULL(c.`user_id`, '') AS slip_created_by, IFNULL(b.`updated_at`, '') AS slip_updated_at, IFNULL(d.`user_id`, '') AS slip_updated_by, 'Subscription' AS invoice_type, IF(a.`inv_status` = 'Emailed','1','2') AS sorting, IF(b.status = 'Uploaded' && a.`inv_status` = 'Emailed', '1', IF(b.status IS NULL && a.`inv_status` = 'Emailed','2','3')) AS sorting_two , IF(e.`Variance` = '1','Block','') AS variance_status FROM b2b_invoice.supplier_monthly_main a LEFT JOIN lite_b2b.`invoice_slip` b ON a.`invoice_number` = b.`invoice_number` LEFT JOIN lite_b2b.`set_user` c ON b.`created_by` = c.`user_guid` LEFT JOIN lite_b2b.`set_user` d ON b.`updated_by` = d.`user_guid` LEFT JOIN lite_b2b.`query_outstanding_retailer` e ON a.`biller_guid` = e.`supplier_guid` AND e.`Variance` = '1' GROUP BY a.`inv_guid` UNION ALL SELECT a.`inv_guid`, a.`name`, a.`invoice_number`, a.`inv_status`, a.`period_code`, a.`total_include_tax`, a.`final_amount`, a.`created_at`, a.`biller_guid`, IFNULL(b.`status`, '') AS file_status, IFNULL(b.`created_at`, '') AS slip_created_at, IFNULL(c.`user_id`, '') AS slip_created_by, IFNULL(b.`updated_at`, '') AS slip_updated_at, IFNULL(d.`user_id`, '') AS slip_updated_by, 'Registration' AS invoice_type, IF(a.`inv_status` = 'Emailed','1','2') AS sorting, IF(b.status = 'Uploaded' && a.`inv_status` = 'Emailed', '1', IF(b.status IS NULL && a.`inv_status` = 'Emailed','2','3')) AS sorting_two , IF(e.`Variance` = '1','Block','') AS variance_status FROM b2b_invoice.inv_doc a LEFT JOIN lite_b2b.`invoice_slip` b ON a.`invoice_number` = b.`invoice_number` LEFT JOIN lite_b2b.`set_user` c ON b.`created_by` = c.`user_guid` LEFT JOIN lite_b2b.`set_user` d ON b.`updated_by` = d.`user_guid` LEFT JOIN lite_b2b.`query_outstanding_retailer` e ON a.`biller_guid` = e.`supplier_guid` AND e.`Variance` = '1' GROUP BY a.`inv_guid`) a ORDER BY FIELD (a.sorting_two, '1','2','3') ASC , FIELD (a.sorting, '1','2') ASC  , a.period_code DESC, a.name ASC";
+            $sql = "SELECT * FROM (SELECT a.`inv_guid`, a.`name`, a.`invoice_number`, a.`inv_status`, a.`period_code`, a.`total_include_tax`, a.`final_amount`, a.`created_at`, a.`biller_guid`, IFNULL(b.`status`, '') AS file_status, IFNULL(b.`created_at`, '') AS slip_created_at, IFNULL(c.`user_id`, '') AS slip_created_by, IFNULL(b.`updated_at`, '') AS slip_updated_at, IFNULL(d.`user_id`, '') AS slip_updated_by, 'Subscription' AS invoice_type, IF(a.`inv_status` = 'Emailed','1','2') AS sorting, IF(b.status = 'Uploaded' && a.`inv_status` = 'Emailed', '1', IF(b.status IS NULL && a.`inv_status` = 'Emailed','2','3')) AS sorting_two , IF(e.`Variance` = '1','Block','') AS variance_status FROM b2b_invoice.supplier_monthly_main a LEFT JOIN lite_b2b.`invoice_slip` b ON a.`invoice_number` = b.`invoice_number` LEFT JOIN lite_b2b.`set_user` c ON b.`created_by` = c.`user_guid` LEFT JOIN lite_b2b.`set_user` d ON b.`updated_by` = d.`user_guid` LEFT JOIN ( SELECT e.* FROM lite_b2b.`query_outstanding_retailer` e INNER JOIN lite_b2b.acc f ON e.customer_guid = f.acc_guid AND f.isactive = '1' ) e ON a.`biller_guid` = e.`supplier_guid` AND e.`Variance` = '1' GROUP BY a.`inv_guid` UNION ALL SELECT a.`inv_guid`, a.`name`, a.`invoice_number`, a.`inv_status`, a.`period_code`, a.`total_include_tax`, a.`final_amount`, a.`created_at`, a.`biller_guid`, IFNULL(b.`status`, '') AS file_status, IFNULL(b.`created_at`, '') AS slip_created_at, IFNULL(c.`user_id`, '') AS slip_created_by, IFNULL(b.`updated_at`, '') AS slip_updated_at, IFNULL(d.`user_id`, '') AS slip_updated_by, 'Registration' AS invoice_type, IF(a.`inv_status` = 'Emailed','1','2') AS sorting, IF(b.status = 'Uploaded' && a.`inv_status` = 'Emailed', '1', IF(b.status IS NULL && a.`inv_status` = 'Emailed','2','3')) AS sorting_two , IF(e.`Variance` = '1','Block','') AS variance_status FROM b2b_invoice.inv_doc a LEFT JOIN lite_b2b.`invoice_slip` b ON a.`invoice_number` = b.`invoice_number` LEFT JOIN lite_b2b.`set_user` c ON b.`created_by` = c.`user_guid` LEFT JOIN lite_b2b.`set_user` d ON b.`updated_by` = d.`user_guid` LEFT JOIN ( SELECT e.* FROM lite_b2b.`query_outstanding_retailer` e INNER JOIN lite_b2b.acc f ON e.customer_guid = f.acc_guid AND f.isactive = '1' ) e ON a.`biller_guid` = e.`supplier_guid` AND e.`Variance` = '1' GROUP BY a.`inv_guid`) a ORDER BY FIELD (a.sorting_two, '1','2','3') ASC , FIELD (a.sorting, '1','2') ASC  , a.period_code DESC, a.name ASC";
             //ORDER BY FIELD (a.sorting_two, '1','2','3') ASC , FIELD (a.sorting, '1','2') ASC  , a.slip_created_at DESC
         }
         else{
@@ -340,7 +340,107 @@ class b2b_billing_invoice_controller extends CI_Controller {
             $condition = " WHERE b.`status` = '$status_data' AND a.biller_guid = '$supplier_guid'";
         }
 
-        $query_data = $this->db->query("SELECT * FROM (SELECT a.`inv_guid`, a.`name`, a.`invoice_number`, a.`inv_status`, a.`period_code`, a.`total_include_tax`, a.`final_amount`, a.`created_at`, a.`biller_guid`, IFNULL(b.`status`, '') AS file_status, IFNULL(b.`created_at`, '') AS slip_created_at, IFNULL(c.`user_id`, '') AS slip_created_by, IFNULL(b.`updated_at`, '') AS slip_updated_at, IFNULL(d.`user_id`, '') AS slip_updated_by, 'Subscription' AS invoice_type, IF(a.`inv_status` = 'Emailed','1','2') AS sorting, IF(b.status = 'Uploaded' && a.`inv_status` = 'Emailed', '1', IF(b.status IS NULL && a.`inv_status` = 'Emailed','2','3')) AS sorting_two , IF(e.`Variance` = '1','Block','') AS variance_status FROM b2b_invoice.supplier_monthly_main a LEFT JOIN lite_b2b.`invoice_slip` b ON a.`invoice_number` = b.`invoice_number` LEFT JOIN lite_b2b.`set_user` c ON b.`created_by` = c.`user_guid` LEFT JOIN lite_b2b.`set_user` d ON b.`updated_by` = d.`user_guid` LEFT JOIN lite_b2b.`query_outstanding_retailer` e ON a.`biller_guid` = e.`supplier_guid` AND e.`Variance` = '1' $condition GROUP BY a.`inv_guid` UNION ALL SELECT a.`inv_guid`, a.`name`, a.`invoice_number`, a.`inv_status`, a.`period_code`, a.`total_include_tax`, a.`final_amount`, a.`created_at`, a.`biller_guid`, IFNULL(b.`status`, '') AS file_status, IFNULL(b.`created_at`, '') AS slip_created_at, IFNULL(c.`user_id`, '') AS slip_created_by, IFNULL(b.`updated_at`, '') AS slip_updated_at, IFNULL(d.`user_id`, '') AS slip_updated_by, 'Registration' AS invoice_type, IF(a.`inv_status` = 'Emailed','1','2') AS sorting, IF(b.status = 'Uploaded' && a.`inv_status` = 'Emailed', '1', IF(b.status IS NULL && a.`inv_status` = 'Emailed','2','3')) AS sorting_two , IF(e.`Variance` = '1','Block','') AS variance_status FROM b2b_invoice.inv_doc a LEFT JOIN lite_b2b.`invoice_slip` b ON a.`invoice_number` = b.`invoice_number` LEFT JOIN lite_b2b.`set_user` c ON b.`created_by` = c.`user_guid` LEFT JOIN lite_b2b.`set_user` d ON b.`updated_by` = d.`user_guid` LEFT JOIN lite_b2b.`query_outstanding_retailer` e ON a.`biller_guid` = e.`supplier_guid` AND e.`Variance` = '1' $condition GROUP BY a.`inv_guid`) a ORDER BY FIELD (a.sorting_two, '1','2','3') ASC , FIELD (a.sorting, '1','2') ASC  , a.name ASC");
+        $query_data = $this->db->query("SELECT 
+        * 
+        FROM 
+            (
+            SELECT 
+                a.`inv_guid`, 
+                a.`name`, 
+                a.`invoice_number`, 
+                a.`inv_status`, 
+                a.`period_code`, 
+                a.`total_include_tax`, 
+                a.`final_amount`, 
+                a.`created_at`, 
+                a.`biller_guid`, 
+                IFNULL(b.`status`, '') AS file_status, 
+                IFNULL(b.`created_at`, '') AS slip_created_at, 
+                IFNULL(c.`user_id`, '') AS slip_created_by, 
+                IFNULL(b.`updated_at`, '') AS slip_updated_at, 
+                IFNULL(d.`user_id`, '') AS slip_updated_by, 
+                'Subscription' AS invoice_type, 
+                IF(
+                a.`inv_status` = 'Emailed', '1', '2'
+                ) AS sorting, 
+                IF(
+                b.status = 'Uploaded' && a.`inv_status` = 'Emailed', 
+                '1', 
+                IF(
+                    b.status IS NULL && a.`inv_status` = 'Emailed', 
+                    '2', '3'
+                )
+                ) AS sorting_two, 
+                IF(e.`Variance` = '1', 'Block', '') AS variance_status 
+            FROM 
+                b2b_invoice.supplier_monthly_main a 
+                LEFT JOIN lite_b2b.`invoice_slip` b ON a.`invoice_number` = b.`invoice_number` 
+                LEFT JOIN lite_b2b.`set_user` c ON b.`created_by` = c.`user_guid` 
+                LEFT JOIN lite_b2b.`set_user` d ON b.`updated_by` = d.`user_guid` 
+                LEFT JOIN (
+                    SELECT 
+                    e.* 
+                    FROM 
+                    lite_b2b.`query_outstanding_retailer` e 
+                    INNER JOIN lite_b2b.acc f ON e.customer_guid = f.acc_guid 
+                    AND f.isactive = '1'
+                ) e ON a.`biller_guid` = e.`supplier_guid` 
+                AND e.`Variance` = '1'
+            $condition 
+            GROUP BY 
+                a.`inv_guid` 
+            UNION ALL 
+            SELECT 
+                a.`inv_guid`, 
+                a.`name`, 
+                a.`invoice_number`, 
+                a.`inv_status`, 
+                a.`period_code`, 
+                a.`total_include_tax`, 
+                a.`final_amount`, 
+                a.`created_at`, 
+                a.`biller_guid`, 
+                IFNULL(b.`status`, '') AS file_status, 
+                IFNULL(b.`created_at`, '') AS slip_created_at, 
+                IFNULL(c.`user_id`, '') AS slip_created_by, 
+                IFNULL(b.`updated_at`, '') AS slip_updated_at, 
+                IFNULL(d.`user_id`, '') AS slip_updated_by, 
+                'Registration' AS invoice_type, 
+                IF(
+                a.`inv_status` = 'Emailed', '1', '2'
+                ) AS sorting, 
+                IF(
+                b.status = 'Uploaded' && a.`inv_status` = 'Emailed', 
+                '1', 
+                IF(
+                    b.status IS NULL && a.`inv_status` = 'Emailed', 
+                    '2', '3'
+                )
+                ) AS sorting_two, 
+                IF(e.`Variance` = '1', 'Block', '') AS variance_status 
+            FROM 
+                b2b_invoice.inv_doc a 
+                LEFT JOIN lite_b2b.`invoice_slip` b ON a.`invoice_number` = b.`invoice_number` 
+                LEFT JOIN lite_b2b.`set_user` c ON b.`created_by` = c.`user_guid` 
+                LEFT JOIN lite_b2b.`set_user` d ON b.`updated_by` = d.`user_guid` 
+                LEFT JOIN (
+                    SELECT 
+                    e.* 
+                    FROM 
+                    lite_b2b.`query_outstanding_retailer` e 
+                    INNER JOIN lite_b2b.acc f ON e.customer_guid = f.acc_guid 
+                    AND f.isactive = '1'
+                ) e ON a.`biller_guid` = e.`supplier_guid` 
+                AND e.`Variance` = '1'
+            $condition 
+            GROUP BY 
+                a.`inv_guid`
+            ) a 
+        ORDER BY 
+            FIELD (a.sorting_two, '1', '2', '3') ASC, 
+            FIELD (a.sorting, '1', '2') ASC, 
+            a.name ASC
+        ");
 
         // if($user_guid == '7BA14C79BDDB11EBB0C4000D3AA2838A')
         // {

@@ -77,7 +77,16 @@ class Email_controller extends CI_Controller {
         $module = 'reset_pwd';
         $subject = $get_mail_template->row('mail_subject');
 
-        $email_result = $this->Send_email_model->send_mailjet_third_party($email_add, '', $bodyContent, $subject, '', '' ,'','support@xbridge.my','');
+        // if($input_email == 'lahaddatu@babas.com.my' || $input_email == 'jiangrui.goh@pandasoftware.my')
+        // {
+        //     $email_result = $this->Send_email_model->support_send_mailjet_third_party($email_add, '', $bodyContent, $subject, '', '' ,'','support@xbridge.my','');
+        // }
+        // else
+        // {
+            $email_result = $this->Send_email_model->send_mailjet_third_party($email_add, '', $bodyContent, $subject, '', '' ,'','support@xbridge.my','');
+        // }
+
+        
 
         //$email_result = $this->send_mailjet_third_party($email_add, $date, $bodyContent, $email_subject, $module,'support@xbridge.my');
         

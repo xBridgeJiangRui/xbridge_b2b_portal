@@ -83,7 +83,7 @@
 </div>
 <script>
 $(document).ready(function() {
-  
+  var acc_name = '<?php echo $acc_name; ?>';
   //every 40 mins refresh
   window.setTimeout( function() {
     window.location.reload();
@@ -117,7 +117,7 @@ $(document).ready(function() {
       { "data": "type" ,render:function( data, type, row ){
 
       var element = '';
-      if(data == 0)
+      if(data == 99)
       {
         element += 'Task Agent Running';
       }
@@ -125,7 +125,7 @@ $(document).ready(function() {
       {
         element += 'Uploading to B2B';
       }
-      else if(data == 99)
+      else if(data == 0)
       {
         element += 'JSON string Running';
       }
@@ -224,7 +224,7 @@ $(document).ready(function() {
   $(document).on('click','#sync_btn',function(){
     // alert('OUCHHH...');
     // die;
-    confirmation_modal("Are you sure want to Sync?");
+    confirmation_modal("Are you sure want to Sync for <b>" + acc_name + "</b>? ");
     $(document).off('click', '#confirmation_yes').on('click', '#confirmation_yes', function(){
       $.ajax({
         url:"<?php echo site_url('Pending_document/resync_data');?>",

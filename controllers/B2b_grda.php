@@ -16,12 +16,12 @@ class b2b_grda extends CI_Controller
         //load the department_model
         //$this->load->model('General_model');
         $this->load->model('Datatable_model');
-        $this->jasper_ip = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','jasper_invoice_ip','GDJIIP');
+        $this->jasper_ip = $this->file_config_b2b->file_path_name($this->session->userdata('customer_guid'),'web','general_doc','jasper_invoice_ip','GDJIIP');
     }
 
     public function index()
     {
-        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN')
+        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() )
         {   
             //print_r($_SESSION['from_other']); die;
             $setsession = array(
@@ -64,7 +64,7 @@ class b2b_grda extends CI_Controller
 
     public function grda_list()
     {
-        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN') {
+        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() ) {
             $check_loc = $_SESSION['grda_loc'];
             
             $hq_branch_code = $this->db->query("SELECT branch_code FROM acc_branch WHERE is_hq = '1'")->result();
@@ -77,7 +77,7 @@ class b2b_grda extends CI_Controller
 
             $data = array(
                 'grda_status' => $this->db->query("SELECT code, reason from set_setting where module_name = 'GRDA_FILTER_DOCTYPE' order by code='' desc, code asc"),
-                'period_code' => $this->db->query("SELECT period_code from lite_b2b.period_code"),
+                'period_code' => $this->db->query("SELECT period_code from lite_b2b.list_period_code"),
                 'location_description' => $this->db->query("SELECT * FROM b2b_summary.cp_set_branch WHERE BRANCH_CODE = '$check_loc' and customer_guid = '" . $_SESSION['customer_guid'] . "'"),
             );
 
@@ -100,13 +100,14 @@ class b2b_grda extends CI_Controller
     {
         if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != ''   && $_SESSION['user_logs'] == $this->panda->validate_login()) {
             $doc = 'grda_table';
+            $grn_ref_no = $this->input->post('grn_ref_no');
             $ref_no = $this->input->post('ref_no');
             $status = $this->input->post('status');
-            //$datefrom = $this->input->post('datefrom');
-            //$dateto = $this->input->post('dateto');
+            $datefrom = $this->input->post('datefrom');
+            $dateto = $this->input->post('dateto');
             //$exp_datefrom = $this->input->post('exp_datefrom');
             //$exp_dateto = $this->input->post('exp_dateto');
-            $period_code = $this->input->post('period_code');
+            //$period_code = $this->input->post('period_code');
             $type = $this->input->post('type');
             $customer_guid = $_SESSION['customer_guid'];
             $query_loc = $_SESSION['query_loc'];
@@ -129,6 +130,12 @@ class b2b_grda extends CI_Controller
                 $module_code_in = "AND a.supplier_code IN (" . $_SESSION['query_supcode'] . ") ";
             }
 
+            if ($grn_ref_no == '') {
+                $grn_ref_no_in = '';
+            } else {
+                $grn_ref_no_in = " AND a.refno LIKE '%" . $grn_ref_no . "%' ";
+            }
+
             if ($ref_no == '') {
                 $ref_no_in = '';
             } else {
@@ -136,7 +143,11 @@ class b2b_grda extends CI_Controller
             }
 
             if ($status == '') {
-                $status_in = " AND a.status = '' ";
+                $status_in = "";
+            } elseif ($status == 'UNREAD') {
+                $status_in = " AND b.status = '' ";
+            } elseif ($status == 'READ') {
+                $status_in = " AND b.status IN ('printed', 'viewed') ";
             } elseif ($status == 'ALL') {
                 $get_stat = $this->db->query("SELECT code from set_setting where module_name = 'GRDA_FILTER_DOCTYPE'");
 
@@ -148,16 +159,16 @@ class b2b_grda extends CI_Controller
                     $value = "'" . trim($value) . "'";
                 }
                 $check_status = implode(',', array_filter($check_stat));
-                $status_in = " AND d.status IN ($check_status) ";
+                $status_in = " AND b.transtype IN ($check_status) ";
             } else {
-                $status_in = " AND d.status = '$status' ";
+                $status_in = " AND b.transtype = '$status' ";
             }
 
-            // if ($datefrom == '' || $dateto == '') {
-            //     $doc_daterange_in = '';
-            // } else {
-            //     $doc_daterange_in = " AND a.grdate BETWEEN '$datefrom' AND '$dateto' ";
-            // }
+            if ($datefrom == '' || $dateto == '') {
+                $doc_daterange_in = '';
+            } else {
+                $doc_daterange_in = " AND b.sup_cn_date BETWEEN '$datefrom' AND '$dateto' ";
+            }
 
             // if ($exp_datefrom == '' || $exp_dateto == '') {
             //     $exp_daterange_in = '';
@@ -165,13 +176,14 @@ class b2b_grda extends CI_Controller
             //     $exp_daterange_in = " AND a.docdate BETWEEN '$exp_datefrom' AND '$exp_dateto' ";
             // }
 
-            if ($period_code == '') {
-                $period_code_in = '';
-            } else {
-                $period_code_in = " AND LEFT(b.sup_cn_date, 7) = '$period_code'";
-            }
+            // if ($period_code == '') {
+            //     $period_code_in = '';
+            // } else {
+            //     $period_code_in = " AND LEFT(b.sup_cn_date, 7) = '$period_code'";
+            // }
 
             $query_count = "SELECT * FROM ( SELECT 
+            a.refno AS grn_refno,
             b.customer_guid,
             b.refno,
             a.supplier_code,
@@ -184,25 +196,23 @@ class b2b_grda extends CI_Controller
             b.varianceamt,
             IF(b.status = '', 'NEW', b.status) AS status
             FROM
-            b2b_summary.grmain_info AS a FORCE INDEX (customer_guid)
-            INNER JOIN  b2b_summary.grmain_dncn_info AS b
+            b2b_summary.grmain_info AS a
+            INNER JOIN  b2b_summary.grmain_dncn_info  AS b
                 ON a.refno = b.refno 
                 AND a.customer_guid = b.customer_guid 
-            LEFT JOIN b2b_summary.grmain_dncn AS d
-                ON a.refno = d.refno
-                AND a.customer_guid = d.customer_guid
             WHERE a.customer_guid =  '" . $_SESSION['customer_guid'] . "' 
             AND a.loc_group in ($loc)
                 AND a.in_kind = 0  
                 $module_code_in 
                 $status_in 
                 $ref_no_in
-                $period_code_in
-                LIMIT 10
+                $grn_ref_no_in
+                $doc_daterange_in
             ) zzz
             ";
 
             $query = "SELECT 
+            a.refno AS grn_refno,
             b.customer_guid,
             b.refno,
             a.supplier_code,
@@ -215,21 +225,18 @@ class b2b_grda extends CI_Controller
             b.varianceamt,
             IF(b.status = '', 'NEW', b.status) AS status
             FROM
-            b2b_summary.grmain_info AS a FORCE INDEX (customer_guid)
+            b2b_summary.grmain_info AS a
             INNER JOIN  b2b_summary.grmain_dncn_info AS b
                 ON a.refno = b.refno 
                 AND a.customer_guid = b.customer_guid 
-            LEFT JOIN b2b_summary.grmain_dncn AS d
-                ON a.refno = d.refno
-                AND a.customer_guid = d.customer_guid
             WHERE a.customer_guid =  '" . $_SESSION['customer_guid'] . "' 
             AND a.loc_group in ($loc)
                 AND a.in_kind = 0  
                 $module_code_in 
                 $status_in 
                 $ref_no_in
-                $period_code_in
-                LIMIT 10"; 
+                $grn_ref_no_in
+                $doc_daterange_in "; 
             
             //AND b.loc_group in ($loc)  -- up to production need change this
 
@@ -244,7 +251,7 @@ class b2b_grda extends CI_Controller
             if (count($fetch_data) > 0) {
                 foreach ($fetch_data as $row) {
                     $tab = array();
-
+                    $tab['grn_refno'] = $row->grn_refno; 
                     $tab['refno'] = $row->refno;
                     $tab['loc_group'] = $row->loc_group;
                     $tab['transtype'] = $row->transtype;
@@ -350,13 +357,57 @@ class b2b_grda extends CI_Controller
         $refno = $_REQUEST['refno'];
         $customer_guid = $_SESSION['customer_guid'];
         $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
+        $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
+        $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
+
+        if($cloud_directory == null || $cloud_directory == ''){
+            $cloud_directory = '/media/b2b-pdf/data_conversion/';
+        }
+
+        if($fileserver_url == null || $fileserver_url == ''){
+            $fileserver_url = 'https://file.xbridge.my/';
+        }
+
+        $cloud_directory = $cloud_directory . $customer_guid . '/GRDA/';
+
+        // check if pdf file already exist
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
+
+            $curl = curl_init();
+
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $fileserver_url. '/b2b-pdf/data_conversion/' . $customer_guid . '/GRDA/' . $refno.'.pdf',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                    'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+                ),
+            ));
+                
+            $response = curl_exec($curl);
+
+            curl_close($curl); 
+
+            header('Content-type:application/pdf');
+            header('Content-Disposition: inline; filename='.$refno.'.pdf');
+
+            echo $response; die;
+        }
+        
         // $refno = 'KKDGR22040683';
         //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PO/main_jrxml.pdf?refno=".$refno; // po
         //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/gr_supplier_copy.pdf?refno=BLPGR22030862"; // grn
         $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/GRDA.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // grda
         //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_Promotion/promo_claim_inv.pdf?refno=BT1PCI19090033"; // PCI
         //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_DIncentives/display_incentive_report.pdf?refno=RBDI20010018"; // DI
-        //print_r($url); die;
+        // print_r($url); die;
         $check_code = $this->db->query("SELECT b.supplier_code from b2b_summary.grmain_dncn_info a INNER JOIN b2b_summary.grmain_info b ON a.refno = b.refno where a.refno = '$refno' and a.customer_guid = '" . $_SESSION['customer_guid'] . "' GROUP BY a.refno")->row('supplier_code');
 
         $check_code = str_replace("/", "+-+", $check_code);
@@ -386,6 +437,28 @@ class b2b_grda extends CI_Controller
         ));
             
         $response = curl_exec($curl);
+
+        // check pdf file directory
+        if (!file_exists($cloud_directory)) {
+            mkdir($cloud_directory, 0777, true);
+        }
+
+        // download pdf file into the cloud directory
+        file_put_contents($cloud_directory.$refno.'.pdf', $response);
+
+        if(file_exists($cloud_directory.$refno.'.pdf')){
+            
+            $update_data = array(
+                'exported_by'       => 'trigger_button',
+                'exported'          => 1,
+                'exported_datetime' => $this->db->query("SELECT NOW() AS current_datetime")->row('current_datetime'),
+            );
+
+            $this->db->where('refno', $refno);
+            $this->db->where('customer_guid', $customer_guid);
+            $this->db->update('b2b_summary.doc_export', $update_data);
+
+        }
 
         header('Content-type:application/pdf');
         header('Content-Disposition: inline; filename='.$filename.'.pdf');

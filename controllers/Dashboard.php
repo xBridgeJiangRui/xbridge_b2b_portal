@@ -328,7 +328,7 @@ class dashboard extends CI_Controller
         $customer_guid = $_SESSION['customer_guid'];
 
         if ($customer_guid == 'C24990A0FDAE11ECA954A67EA5557007' || $customer_guid == '091AC7DC703911EB8137AED06D30787E') {
-            $submission_date = '30';
+            $submission_date = '60';
         }
         else
         {

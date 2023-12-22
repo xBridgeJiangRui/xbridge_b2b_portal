@@ -16,12 +16,12 @@ class b2b_pdncn extends CI_Controller
         //load the department_model
         $this->load->model('GR_model');
         $this->load->model('Datatable_model');
-        $this->jasper_ip = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','jasper_invoice_ip','GDJIIP');
+        $this->jasper_ip = $this->file_config_b2b->file_path_name($this->session->userdata('customer_guid'),'web','general_doc','jasper_invoice_ip','GDJIIP');
     }
 
     public function index()
     {
-        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN')
+        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login())
         {
             $setsession = array(
                 'frommodule' => 'b2b_pdncn',
@@ -82,7 +82,7 @@ class b2b_pdncn extends CI_Controller
 
             $data = array(
                 'filter_status' => $this->db->query("SELECT code, reason from lite_b2b.set_setting where module_name = 'PDNCN_FILTER_TYPE' order by code='' desc, code asc"),
-                'period_code' => $this->db->query("SELECT period_code from lite_b2b.period_code"),
+                'period_code' => $this->db->query("SELECT period_code from lite_b2b.list_period_code"),
                 'location_description' => $this->db->query("SELECT * FROM b2b_summary.cp_set_branch WHERE BRANCH_CODE = '$check_loc' and customer_guid = '" . $_SESSION['customer_guid'] . "'"),
             );
 
@@ -108,7 +108,10 @@ class b2b_pdncn extends CI_Controller
 
             $ref_no = $this->input->post('ref_no');
             $txn_type = preg_replace('/\s+/', '', $this->input->post('txn_type'));
-            $period_code = preg_replace('/\s+/', '', $this->input->post('period_code'));
+            // $period_code = preg_replace('/\s+/', '', $this->input->post('period_code'));
+            $period_code = '';
+            $datefrom = $this->input->post('datefrom');
+            $dateto = $this->input->post('dateto');
             $type = $this->input->post('type');
             $customer_guid = $_SESSION['customer_guid'];
             $query_loc = $_SESSION['query_loc'];
@@ -139,15 +142,26 @@ class b2b_pdncn extends CI_Controller
 
             if ($txn_type == 'ALL' || $txn_type == '') {
                 $status_in = "";
-            } else {
+            } elseif ($txn_type == 'READ'){
+                $status_in = " AND `status` IN ('printed', 'viewed') ";
+            } elseif ($txn_type == 'UNREAD'){
+                $status_in = " AND `status` = '' ";
+            }else {
                 $status_in = " AND trans_type = '$txn_type' ";
             }
 
-            if ($period_code == 'None' || $period_code == '') {
-                $period_code_in = '';
+            // if ($period_code == 'None' || $period_code == '') {
+            //     $period_code_in = '';
+            // } else {
+            //     $period_code_in = " AND LEFT(docdate, 7) = '$period_code'";
+            // }
+
+            if ($datefrom == '' || $dateto == '') {
+                $doc_daterange_in = '';
             } else {
-                $period_code_in = " AND LEFT(docdate, 7) = '$period_code'";
+                $doc_daterange_in = " AND docdate BETWEEN '$datefrom' AND '$dateto' ";
             }
+
 
             $query_count = "SELECT * FROM (SELECT 
             * 
@@ -162,9 +176,9 @@ class b2b_pdncn extends CI_Controller
                 docdate, 
                 supplier_code, 
                 supplier_name, 
-                ROUND(JSON_UNQUOTE(JSON_EXTRACT(`pdncn_json_info`,'$.cndnamt[0].amount')), 2) AS amount, 
-                ROUND(JSON_UNQUOTE(JSON_EXTRACT(`pdncn_json_info`,'$.cndnamt[0].gst_tax_sum')), 2) AS gst_tax_sum, 
-                ROUND(JSON_UNQUOTE(JSON_EXTRACT(`pdncn_json_info`,'$.cndnamt[0].amount_include_tax')), 2) AS amount_include_tax, 
+                amount, 
+                gst_tax_sum, 
+                total_incl_tax, 
                 IF(status = '', 'NEW', status) as status
               FROM 
                 b2b_summary.cndn_amt_info
@@ -173,7 +187,7 @@ class b2b_pdncn extends CI_Controller
                 AND loc_group IN ($loc) 
                 $module_code_in 
                 $ref_no_in
-                $period_code_in 
+                $doc_daterange_in 
                 $status_in
             ) a
             ) zzz "; 
@@ -191,9 +205,9 @@ class b2b_pdncn extends CI_Controller
                 docdate, 
                 supplier_code, 
                 supplier_name, 
-                ROUND(JSON_UNQUOTE(JSON_EXTRACT(`pdncn_json_info`,'$.cndnamt[0].amount')), 2) AS amount, 
-                ROUND(JSON_UNQUOTE(JSON_EXTRACT(`pdncn_json_info`,'$.cndnamt[0].gst_tax_sum')), 2) AS gst_tax_sum, 
-                ROUND(JSON_UNQUOTE(JSON_EXTRACT(`pdncn_json_info`,'$.cndnamt[0].amount_include_tax')), 2) AS amount_include_tax, 
+                amount, 
+                gst_tax_sum, 
+                total_incl_tax, 
                 IF(status = '', 'NEW', status) as status
               FROM 
                 b2b_summary.cndn_amt_info
@@ -202,7 +216,7 @@ class b2b_pdncn extends CI_Controller
                 AND loc_group IN ($loc) 
                 $module_code_in 
                 $ref_no_in
-                $period_code_in 
+                $doc_daterange_in 
                 $status_in
             ) a
                     
@@ -231,7 +245,7 @@ class b2b_pdncn extends CI_Controller
                     $tab['docdate'] = $row->docdate;
                     $tab['amount'] = $row->amount;
                     $tab['gst_tax_sum'] = $row->gst_tax_sum;
-                    $tab['amount_include_tax'] = $row->amount_include_tax;
+                    $tab['amount_include_tax'] = $row->total_incl_tax;
                     $tab['status'] = $row->status;
                     $tab['button'] = "<a href=" . site_url('b2b_pdncn/pdncn_child') . "?trans=" . $row->refno . "&loc=" . $_SESSION['pdncn_loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                     $tab['box'] = '<input type="checkbox" class="data-check" value="' . $row->refno . '">';
@@ -328,17 +342,63 @@ class b2b_pdncn extends CI_Controller
 
     public function pdncn_report()
     {
+        $get_status = $this->db->query("SELECT `status` FROM lite_b2b.jasper_server WHERE isactive = '1'")->row('status');
+
+        if($get_status == '0')
+        {
+            print_r('Report Under Maintenance.'); 
+            die;
+        }
+        
         $refno = $_REQUEST['refno'];
         $customer_guid = $_SESSION['customer_guid'];
         $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
-        
-        //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PO/main_jrxml.pdf?refno=".$refno; // po
-        //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/gr_supplier_copy.pdf?refno=BLPGR22030862"; // grn
-        // $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PDNCN/PDNCN.pdf?refno=".$refno; // grda
-        $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PDN_PCN/main_jrxml.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; 
-        //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_Promotion/promo_claim_inv.pdf?refno=BT1PCI19090033"; // PCI
-        //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_DIncentives/display_incentive_report.pdf?refno=RBDI20010018"; // DI
-        //print_r($url); die;
+        $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
+        $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
+
+        if($cloud_directory == null || $cloud_directory == ''){
+            $cloud_directory = '/media/b2b-pdf/data_conversion/';
+        }
+
+        if($fileserver_url == null || $fileserver_url == ''){
+            $fileserver_url = 'https://file.xbridge.my/';
+        }
+
+        $cloud_directory = $cloud_directory . $customer_guid . '/PDNCN/';
+
+        // check if pdf file already exist
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
+
+            $curl = curl_init();
+
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $fileserver_url. '/b2b-pdf/data_conversion/' . $customer_guid . '/PDNCN/' . $refno.'.pdf',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                    'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+                ),
+            ));
+                
+            $response = curl_exec($curl);
+
+            curl_close($curl); 
+
+            header('Content-type:application/pdf');
+            header('Content-Disposition: inline; filename='.$refno.'.pdf');
+
+            echo $response; die;
+        }
+
+        $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PDN_PCN/main_jrxml.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode;
+        // print_r($url); die;
         $check_code = $this->db->query("SELECT supplier_code from b2b_summary.cndn_amt_info where refno = '$refno' and customer_guid = '" . $_SESSION['customer_guid'] . "' GROUP BY refno")->row('supplier_code');
 
         $check_code = str_replace("/", "+-+", $check_code);
@@ -360,6 +420,7 @@ class b2b_pdncn extends CI_Controller
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_HTTPHEADER => array(
                 'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
                 'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
@@ -367,6 +428,28 @@ class b2b_pdncn extends CI_Controller
         ));
             
         $response = curl_exec($curl);
+
+        // check pdf file directory
+        if (!file_exists($cloud_directory)) {
+            mkdir($cloud_directory, 0777, true);
+        }
+
+        // download pdf file into the cloud directory
+        file_put_contents($cloud_directory.$refno.'.pdf', $response);
+
+        if(file_exists($cloud_directory.$refno.'.pdf')){
+            
+            $update_data = array(
+                'exported_by'       => 'trigger_button',
+                'exported'          => 1,
+                'exported_datetime' => $this->db->query("SELECT NOW() AS current_datetime")->row('current_datetime'),
+            );
+
+            $this->db->where('refno', $refno);
+            $this->db->where('customer_guid', $customer_guid);
+            $this->db->update('b2b_summary.doc_export', $update_data);
+
+        }
 
         header('Content-type:application/pdf');
         header('Content-Disposition: inline; filename='.$filename.'.pdf');

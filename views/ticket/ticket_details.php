@@ -1,3 +1,5 @@
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
 <div class="content-wrapper" style="">
 
   <section class="content" style="">
@@ -285,23 +287,25 @@
                 </div>
                 <!-- /.box-body -->
 
-                 <?php if($ticket->row('ticket_status') !== 'Closed' || $ticket->row('ticket_status') === null ) {?>      
-                <div class="box-footer">
-                  <form method="post" action="<?php echo site_url('Ticket/ticket_messages_send')?>" enctype="multipart/form-data" >
-     
-                      <input type="hidden" id="hide_ticket_guid" name="ticket_guid" required="true" value="<?php echo $_REQUEST['t_g'] ?>">
-                      <textarea class="summernote_textarea" name="messages" placeholder="Type Message ..." class="form-control" required="true"></textarea>
-
-                      <div class="upload" style="margin-bottom: 10px;  ">
-                      <span class="btn btn-default btn-file"> Choose Files <input type="file" id="uploads" name="myFile1[]" multiple /></span>
-                       <ul id="Dash" style=" list-style:decimal";></ul>
-                      </div>
-               
-
-                      <center><button type="submit" name="submit" class="btn btn-flat" style="background-color: #3c8dbc;color: white">Send</button></center>
-                    
-                  </form>
-                </div>
+                 <?php if($ticket->row('ticket_status') !== 'Closed' || $ticket->row('ticket_status') === null ) {?>
+                    <div class="box-footer">
+                        <form method="post" enctype="multipart/form-data">
+                            <input type="hidden" id="hide_ticket_guid" name="ticket_guid" required="true" value="<?php echo $_REQUEST['t_g'] ?>">
+                            <textarea class="summernote_textarea" name="messages" placeholder="Type Message or Internal Note..." class="form-control" required="true"></textarea>
+                            <div class="upload" style="margin-bottom: 10px;">
+                                <span class="btn btn-default btn-file"> Choose Files <input type="file" id="uploads" name="myFile1[]" multiple /></span>
+                                <ul id="Dash" style=" list-style:decimal";></ul>
+                            </div>
+                            <?php if ($_SESSION['user_group_name'] == 'SUPER_ADMIN') { ?>
+                                <button type="submit" name="submit" formaction="<?php echo site_url('Ticket/ticket_internal_note_send')?>" class="btn btn-flat" style="background-color: #ff0000; color: white">
+                                    <span class="bi bi-pencil"></span> Internal Note
+                                </button>
+                            <?php } ?>
+                            <center>    
+                                <button type="submit" name="submit" formaction="<?php echo site_url('Ticket/ticket_messages_send')?>" class="btn btn-flat" style="background-color: #3c8dbc;color: white">Send</button>
+                            </center>
+                        </form>
+                    </div>
                 <?php } ?>
  
                 <!-- /.box-footer-->
@@ -510,7 +514,7 @@ $('#status').change(function()
               <div class="modal-body" style="display: flow-root;">
                   <div class="col-md-12">
                     <label>Staff(Super Admin)</label>
-                    <select id="status" class="form-control" name="assigned">
+                    <select id="status" class="form-control select2" name="assigned" style="width:540px;">
                       <?php foreach ($super_admin->result() as $key) { ?>
                         <option value="<?php echo $key->user_guid ?>"><?php echo $key->user_name .'-'.$key->user_id ?></option>
                       <?php } ?>

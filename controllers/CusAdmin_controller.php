@@ -303,8 +303,8 @@ class CusAdmin_controller extends CI_Controller {
                 4 =>'name',
                 5 =>'sup_name',
                 6 =>'reg_no',
-                7 =>'block',
-                8 => 'remark1',
+                7 =>'supply_type',
+                8 =>'block',
                 9 => 'PIC',
                 10 =>'invoice_no',
                 // 11 =>'training_pax',
@@ -314,7 +314,7 @@ class CusAdmin_controller extends CI_Controller {
                 // 15 => 'ACCEPT_FORM',
                 // 16 => 'REG_FORM',
                 // 17 => 'customer_guid',
-                12 => 'supply_type',
+                12 => 'remark1',
             );   
 
             /*//debug mode

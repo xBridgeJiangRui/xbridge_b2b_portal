@@ -21,7 +21,7 @@ class b2b_di extends CI_Controller
 
     public function index()
     {
-        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN')
+        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login())
         {   
             //print_r($_SESSION['from_other']); die;
             $setsession = array(
@@ -64,7 +64,7 @@ class b2b_di extends CI_Controller
 
     public function di_list()
     {
-        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN') {
+        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login()) {
             $check_loc = $_SESSION['di_loc'];
             
             $hq_branch_code = $this->db->query("SELECT branch_code FROM acc_branch WHERE is_hq = '1'")->result();
@@ -119,7 +119,7 @@ class b2b_di extends CI_Controller
             if (in_array($_SESSION['di_loc'], $hq_branch_code_array)) {
                 $loc = $query_loc;
             } else {
-                $loc = "'" . $_SESSION['dii_loc'] . "'";
+                $loc = "'" . $_SESSION['di_loc'] . "'";
             }
 
             if (in_array('IAVA', $_SESSION['module_code'])) {
@@ -195,8 +195,8 @@ class b2b_di extends CI_Controller
             a.supplier_name,
             a.loc_group,
             a.docdate,
-            CAST(JSON_UNQUOTE(JSON_EXTRACT(a.`di_json_info`,'$.discheme_taxinv[0].datedue')) AS DATE)AS datedue,
-            ROUND(JSON_UNQUOTE(JSON_EXTRACT(a.`di_json_info`,'$.discheme_taxinv[0].total_net')), 2 )AS total_net,
+            a.datedue,
+            a.total_net,
             IF(a.status = '', 'NEW', a.status) AS status
             FROM
             b2b_summary.discheme_taxinv_info AS a
@@ -234,7 +234,7 @@ class b2b_di extends CI_Controller
                     $tab['datedue'] = $row->datedue;
                     $tab['total_net'] = "<span class='pull-right'>" . number_format($row->total_net, 2) . "</span>";
                     $tab['status'] = $row->status;
-                    $tab['button'] = "<a href=" . site_url('json/b2b_di/di_child') . "?trans=" . $row->inv_refno . "&loc=" . $_SESSION['di_loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
+                    $tab['button'] = "<a href=" . site_url('b2b_di/di_child') . "?trans=" . $row->inv_refno . "&loc=" . $_SESSION['di_loc'] . " style='float:left' class='btn btn-sm btn-info' role='button'><span class='glyphicon glyphicon-eye-open'></span></a>";
                     $tab['box'] = '<input type="checkbox" class="data-check" value="' . $row->inv_refno . '">';
 
                     $data[] = $tab;
@@ -314,7 +314,7 @@ class b2b_di extends CI_Controller
                 'virtual_path' => $virtual_path,
                 'title' => 'Display Incentive Tax Invoice',
                 'document_no' => $inv_refno,
-                'request_link' => site_url('json/B2b_di/di_report?refno='.$inv_refno),
+                'request_link' => site_url('B2b_di/di_report?refno='.$inv_refno),
             );
             
             $this->load->view('header');       
@@ -333,6 +333,7 @@ class b2b_di extends CI_Controller
     {
         $inv_refno = $_REQUEST['refno'];
         $customer_guid = $_SESSION['customer_guid'];
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
         $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
         $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
 
@@ -347,7 +348,7 @@ class b2b_di extends CI_Controller
         $cloud_directory = $cloud_directory . $customer_guid . '/DI/';
 
         // check if pdf file already exist
-        if (file_exists($cloud_directory.$inv_refno.'.pdf')) {
+        if (file_exists($cloud_directory.$inv_refno.'.pdf') && (filesize($cloud_directory.$inv_refno.'.pdf') / 1024 > 2)) {
 
             $curl = curl_init();
 
@@ -377,7 +378,7 @@ class b2b_di extends CI_Controller
             echo $response; die;
         }
 
-        $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_DIncentives/display_incentive_report.pdf?refno=".$inv_refno."&customer_guid=".$customer_guid; // DI
+        $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_DIncentives/display_incentive_report.pdf?refno=".$inv_refno."&customer_guid=".$customer_guid."&mode=".$mode; // DI
         
         $check_code = $this->db->query("SELECT a.supplier_code from b2b_summary.promo_taxinv_info a where a.inv_refno = '$inv_refno' and a.customer_guid = '" . $_SESSION['customer_guid'] . "' ")->row('supplier_code');
 

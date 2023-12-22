@@ -178,6 +178,10 @@ if (!defined('BASEPATH'))
         {
             $gr_status = "";
         }//close gr_status
+        else if ($gr_status == 'geinv') 
+        {
+            $gr_status = "AND a.status IN ('', 'printed', 'viewed')";
+        }
         else
         {
             $gr_status = "AND a.status = '$gr_status'";

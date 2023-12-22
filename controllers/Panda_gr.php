@@ -96,6 +96,14 @@ class panda_gr extends CI_Controller
             {
                 $from_module = 'panda_gr'; //fo edi
             }
+
+            if (isset($_REQUEST['view_json'])) 
+            {
+                $view_json = $_REQUEST['view_json'];
+            } else {
+                $view_json = $this->db->query("SELECT json_view_doc_btn FROM lite_b2b.acc_settings WHERE customer_guid = '$customer_guid'")->row('json_view_doc_btn');
+            }
+
             $this->panda->get_uri();
             $database_production = 'b2b_summary';
 
@@ -562,18 +570,23 @@ class panda_gr extends CI_Controller
                 $this->db->query("INSERT INTO einv_err_log (customer_guid,refno,error_code,error_reason,created_at,created_by) VALUES('$customer_guid','$refno','ERR-CODE','$error_msg',NOW(),'$user_guid')");
             }
 
-            $check_inv_no_1 = $this->db->query("SELECT refno FROM b2b_summary.grmain WHERE customer_guid = '$customer_guid' AND invno = '$check_inv_no' AND `code` IN ($code_supcus)");
+            $check_inv_no_1 = $this->db->query("SELECT refno FROM b2b_summary.grmain WHERE customer_guid = '$customer_guid' AND invno = '$check_inv_no' AND `code` IN ($code_supcus) AND refno != '$refno' AND `status` != 'Invoice Generated'");
 
             $check_inv_no_2 = $this->db->query("SELECT a.refno FROM b2b_summary.einv_main a INNER JOIN b2b_summary.grmain b ON a.refno = b.refno AND a.customer_guid = b.customer_guid WHERE a.refno != '$refno' AND a.customer_guid = '$customer_guid' AND a.einvno = '$check_inv_no' AND b.code IN ($code_supcus)");
 
             // echo $this->db->last_query();die;
 
-            if ($check_inv_no_1->num_rows() > 1) {
-                $this->session->set_flashdata('warning', 'Please check duplicate Supplier Invoice Number.');
+            if ($check_inv_no_1->num_rows() > 0) {
+
+                $error_refno = implode(",",array_filter(array_column($check_inv_no_1->result_array(),'refno')));
+
+                $this->session->set_flashdata('warning', 'Please check duplicate Supplier Invoice Number. '. $error_refno);
             }
             else if($check_inv_no_2->num_rows() > 0)
             {
-                $this->session->set_flashdata('warning', 'Please check duplicate Supplier Invoice Number has generated.');
+                $error_refno = implode(",",array_filter(array_column($check_inv_no_2->result_array(),'refno')));
+
+                $this->session->set_flashdata('warning', 'Please check duplicate Supplier Invoice Number has generated. ' . $error_refno);
             }
 
             if($H_consign == '1')
@@ -581,7 +594,6 @@ class panda_gr extends CI_Controller
                 $this->session->set_flashdata('warning', 'These GRN under Consign Code.');
             }
             
-
             $data = array(
                 'gr_back_date' => $gr_back_date,
                 'backdate' => $this->db->query("SELECT CURDATE() as curdate")->row('curdate'),
@@ -623,9 +635,10 @@ class panda_gr extends CI_Controller
                 'file_sup_code' => $file_sup_code,
                 'file_refno' => $refno,
                 'H_consign' => $H_consign,
+                'pay_by_invoice' => $pay_by_invoice,
                 'request_link_gr' => site_url('panda_gr/gr_report?refno='.$refno),
                 'request_link_grda' => site_url('panda_gr/grda_report?refno='.$refno),
-                'pay_by_invoice' => $pay_by_invoice,
+                'view_json' => $view_json,
             );
 
 
@@ -652,10 +665,68 @@ class panda_gr extends CI_Controller
 
         $refno = $_REQUEST['refno'];
         $customer_guid = $_SESSION['customer_guid'];
-        
-        $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/gr_supplier_copy.pdf?refno=".$refno."&customer_guid=".$customer_guid; // grn
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
+        $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
+        $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
+        // print_r($refno); die;
+        if($cloud_directory == null || $cloud_directory == ''){
+            $cloud_directory = '/media/b2b-pdf/data_conversion/';
+        }
 
-        //print_r($url); die;
+        if($fileserver_url == null || $fileserver_url == ''){
+            $fileserver_url = 'https://file.xbridge.my/';
+        }
+
+        $cloud_directory = $cloud_directory . $customer_guid . '/GR/';
+
+        // check if pdf file already exist
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
+
+            $curl = curl_init();
+
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $fileserver_url. '/b2b-pdf/data_conversion/' . $customer_guid . '/GR/' . $refno.'.pdf',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                    'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+                ),
+            ));
+                
+            $response = curl_exec($curl);
+
+            curl_close($curl); 
+
+            header('Content-type:application/pdf');
+            header('Content-Disposition: inline; filename='.$refno.'.pdf');
+
+            echo $response; die;
+        }
+
+        if($customer_guid == '599348EDCB2F11EA9A81000C29C6CEB2')
+        {
+            $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/gr_supplier_copy.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // grn
+
+            // echo $url; die;
+        }
+        else
+        {
+            $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/gr_supplier_copy.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // grn
+        }
+
+        //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PO/main_jrxml.pdf?refno=".$refno; // po
+        // $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/gr_supplier_copy.pdf?refno=".$refno."&customer_guid=".$customer_guid; // grn
+        //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/GRDA.pdf?refno=SGPGR22040255"; // grda
+        //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_Promotion/promo_claim_inv.pdf?refno=BT1PCI19090033"; // PCI
+        //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_DIncentives/display_incentive_report.pdf?refno=RBDI20010018"; // DI
+        // print_r($url); die;
         $check_code = $this->db->query("SELECT supplier_code from b2b_summary.grmain_info where refno = '$refno' and customer_guid = '" . $_SESSION['customer_guid'] . "'")->row('supplier_code');
 
         $check_code = str_replace("/", "+-+", $check_code);
@@ -675,7 +746,7 @@ class panda_gr extends CI_Controller
             CURLOPT_MAXREDIRS => 10,
             CURLOPT_TIMEOUT => 0,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2_0,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_HTTPHEADER => array(
@@ -683,8 +754,30 @@ class panda_gr extends CI_Controller
                 'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
             ),
         ));
-
+            
         $response = curl_exec($curl);
+
+        // check pdf file directory
+        if (!file_exists($cloud_directory)) {
+            mkdir($cloud_directory, 0777, true);
+        }
+
+        // download pdf file into the cloud directory
+        file_put_contents($cloud_directory.$refno.'.pdf', $response);
+
+        if(file_exists($cloud_directory.$refno.'.pdf')){
+            
+            $update_data = array(
+                'exported_by'       => 'trigger_button',
+                'exported'          => 1,
+                'exported_datetime' => $this->db->query("SELECT NOW() AS current_datetime")->row('current_datetime'),
+            );
+
+            $this->db->where('refno', $refno);
+            $this->db->where('customer_guid', $customer_guid);
+            $this->db->update('b2b_summary.doc_export', $update_data);
+
+        }
 
         header('Content-type:application/pdf');
         header('Content-Disposition: inline; filename='.$filename.'.pdf');
@@ -707,9 +800,66 @@ class panda_gr extends CI_Controller
 
         $refno = $_REQUEST['refno'];
         $customer_guid = $_SESSION['customer_guid'];
-        
-        $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/GRDA.pdf?refno=".$refno."&customer_guid=".$customer_guid; // grda
+        $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
+        $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
+        $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
 
+        if($cloud_directory == null || $cloud_directory == ''){
+            $cloud_directory = '/media/b2b-pdf/data_conversion/';
+        }
+
+        if($fileserver_url == null || $fileserver_url == ''){
+            $fileserver_url = 'https://file.xbridge.my/';
+        }
+
+        $cloud_directory = $cloud_directory . $customer_guid . '/GRDA/';
+
+        // check if pdf file already exist
+        if (file_exists($cloud_directory.$refno.'.pdf')) {
+
+            $curl = curl_init();
+
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $fileserver_url. '/b2b-pdf/data_conversion/' . $customer_guid . '/GRDA/' . $refno.'.pdf',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                    'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+                ),
+            ));
+                
+            $response = curl_exec($curl);
+
+            curl_close($curl); 
+
+            header('Content-type:application/pdf');
+            header('Content-Disposition: inline; filename='.$refno.'.pdf');
+
+            echo $response; die;
+        }
+
+        if($customer_guid == '599348EDCB2F11EA9A81000C29C6CEB2')
+        {
+            $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/GRDA_COPY.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // grda
+
+            // echo $url; die;
+        }
+        else
+        {
+            $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/GRDA.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // grda
+        }
+        
+        //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PO/main_jrxml.pdf?refno=".$refno; // po
+        //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/gr_supplier_copy.pdf?refno=BLPGR22030862"; // grn
+        //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_Promotion/promo_claim_inv.pdf?refno=BT1PCI19090033"; // PCI
+        //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_DIncentives/display_incentive_report.pdf?refno=RBDI20010018"; // DI
         //print_r($url); die;
         $check_code = $this->db->query("SELECT b.supplier_code from b2b_summary.grmain_dncn_info a INNER JOIN b2b_summary.grmain_info b ON a.refno = b.refno where a.refno = '$refno' and a.customer_guid = '" . $_SESSION['customer_guid'] . "' GROUP BY a.refno")->row('supplier_code');
 
@@ -730,7 +880,7 @@ class panda_gr extends CI_Controller
             CURLOPT_MAXREDIRS => 10,
             CURLOPT_TIMEOUT => 0,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2_0,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_HTTPHEADER => array(
@@ -740,6 +890,28 @@ class panda_gr extends CI_Controller
         ));
             
         $response = curl_exec($curl);
+
+        // check pdf file directory
+        if (!file_exists($cloud_directory)) {
+            mkdir($cloud_directory, 0777, true);
+        }
+
+        // download pdf file into the cloud directory
+        file_put_contents($cloud_directory.$refno.'.pdf', $response);
+
+        if(file_exists($cloud_directory.$refno.'.pdf')){
+            
+            $update_data = array(
+                'exported_by'       => 'trigger_button',
+                'exported'          => 1,
+                'exported_datetime' => $this->db->query("SELECT NOW() AS current_datetime")->row('current_datetime'),
+            );
+
+            $this->db->where('refno', $refno);
+            $this->db->where('customer_guid', $customer_guid);
+            $this->db->update('b2b_summary.doc_export', $update_data);
+
+        }
 
         header('Content-type:application/pdf');
         header('Content-Disposition: inline; filename='.$filename.'.pdf');
@@ -769,6 +941,13 @@ class panda_gr extends CI_Controller
             $from_module = $_SESSION['frommodule'];
             $this->panda->get_uri();
             $database_production = 'b2b_summary';
+
+            if (isset($_REQUEST['view_json'])) 
+            {
+                $view_json = $_REQUEST['view_json'];
+            } else {
+                $view_json = $this->db->query("SELECT json_view_doc_btn FROM lite_b2b.acc_settings WHERE customer_guid = '$customer_guid'")->row('json_view_doc_btn');
+            }
 
             $grmain_status = $this->db->query("SELECT status from $database_production.grmain where refno = '$refno' AND customer_guid = '$customer_guid'")->row('status');
             if ($grmain_status != 'CONFIRM_EINV') {
@@ -986,6 +1165,9 @@ class panda_gr extends CI_Controller
                 'grda_file_headers' => $grda_file_headers,
                 'grda_virtual_path' => $grda_virtual_path,
                 'accpt_gr_status' => $accpt_gr_status,
+                'request_link_gr' => site_url('panda_gr/gr_report?refno='.$refno),
+                'request_link_grda' => site_url('panda_gr/grda_report?refno='.$refno),
+                'view_json' => $view_json,
             );
 
 

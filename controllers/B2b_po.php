@@ -17,12 +17,12 @@ class b2b_po extends CI_Controller
         $this->load->model('Po_model');
         $this->load->model('General_model');
         $this->load->model('Datatable_model');
-        $this->jasper_ip = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','jasper_invoice_ip','GDJIIP');
+        $this->jasper_ip = $this->file_config_b2b->file_path_name($this->session->userdata('customer_guid'),'web','general_doc','jasper_invoice_ip','GDJIIP');
     }
 
     public function index()
     {
-        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN')
+        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login())
         {   
             $setsession = array(
                 'frommodule' => 'b2b_po',
@@ -64,7 +64,7 @@ class b2b_po extends CI_Controller
 
     public function po_list()
     {
-        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN') {
+        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login()) {
             $check_loc = $_SESSION['po_loc'];
  
             $hq_branch_code = $this->db->query("SELECT branch_code FROM acc_branch WHERE is_hq = '1'")->result();
@@ -85,7 +85,7 @@ class b2b_po extends CI_Controller
                 'set_admin_code' => $this->db->query("SELECT code,portal_description as reason from status_setting where type = 'hide_po_filter' AND isactive = 1 order by portal_description asc"),
                 'set_code' => $this->db->query("SELECT code,reason from  set_setting where module_name = 'PO' order by reason asc"),
                 'po_status' => $this->db->query("SELECT code, reason from set_setting where module_name = 'PO_FILTER_STATUS' order by code='ALL' desc, code asc"),
-                'period_code' => $this->db->query("SELECT period_code from lite_b2b.period_code"),
+                'period_code' => $this->db->query("SELECT period_code from lite_b2b.list_period_code"),
                 'location' => $this->db->query("SELECT DISTINCT branch_code 
                     FROM acc_branch AS a
                     INNER JOIN acc_concept AS b
@@ -151,7 +151,9 @@ class b2b_po extends CI_Controller
             }
 
             if ($status == '') {
-                $status_in = " AND d.status = '' ";
+                $status_in = " AND a.status = '' ";
+            } elseif ($status == 'READ') {
+                $status_in = " AND a.status IN ('printed', 'viewed') ";
             } elseif ($status == 'ALL') {
                 $get_stat = $this->db->query("SELECT code from set_setting where module_name = 'PO_FILTER_STATUS'");
 
@@ -163,9 +165,9 @@ class b2b_po extends CI_Controller
                     $value = "'" . trim($value) . "'";
                 }
                 $check_status = implode(',', array_filter($check_stat));
-                $status_in = " AND d.status IN ($check_status) ";
+                $status_in = " AND a.status IN ($check_status) ";
             } else {
-                $status_in = " AND d.status = '$status' ";
+                $status_in = " AND a.status = '$status' ";
             }
 
             if ($datefrom == '' || $dateto == '') {
@@ -201,52 +203,44 @@ class b2b_po extends CI_Controller
             b.gr_refno AS grn_refno
             FROM b2b_summary.pomain_info a FORCE INDEX (customer_guid)
             LEFT JOIN b2b_summary.`po_grn_inv` b ON a.refno = b.`po_refno` AND a.`customer_guid` =  b.`customer_guid`
-            LEFT JOIN b2b_summary.pomain d
-            ON a.refno = d.refno
-            AND a.customer_guid = d.customer_guid
             WHERE a.customer_guid = '$customer_guid' 
             AND a.loc_group IN ($loc)
             AND a.in_kind = 0
+            $module_code_in
             $status_in 
             $doc_daterange_in
             $exp_daterange_in 
             $ref_no_in
             $period_code_in
-            LIMIT 10
             ) zzz
             ";
 
             $query = "SELECT a.customer_guid AS customer_guid,
             a.RefNo AS refno,
             b.gr_refno AS grn_refno ,
-            JSON_UNQUOTE(JSON_EXTRACT(a.`po_json_info`,'$.pomain[0].loc_group')) AS outlet,
             a.supplier_code,
             a.supplier_name,
             a.podate,
             a.loc_group,
-            DATE_FORMAT(JSON_UNQUOTE(JSON_EXTRACT(a.`po_json_info`,'$.pomain[0].DeliverDate')), '%Y-%m-%d %a') AS delivery_date,
-            DATE_FORMAT(JSON_UNQUOTE(JSON_EXTRACT(a.`po_json_info`,'$.pomain[0].expiry_date')), '%Y-%m-%d %a') AS expiry_date,
-
-            ROUND(JSON_UNQUOTE(JSON_EXTRACT(a.`po_json_info`,'$.pomain[0].Total')), 2) AS amount,
-            ROUND(JSON_UNQUOTE(JSON_EXTRACT(a.`po_json_info`,'$.pomain[0].gst_tax_sum')), 2) AS tax,
-            ROUND(JSON_UNQUOTE(JSON_EXTRACT(a.`po_json_info`,'$.pomain[0].total_include_tax')), 2) AS total_include_tax,
+            a.delivery_date,
+            a.expiry_date,
+            a.amount,
+            a.tax,
+            a.total_include_tax,
             c.portal_description AS rejected_remark,
             IF(a.status = '', 'NEW', a.status) as status
             FROM b2b_summary.pomain_info a FORCE INDEX (customer_guid)
             LEFT JOIN b2b_summary.`po_grn_inv` b ON a.refno = b.`po_refno` AND a.`customer_guid` =  b.`customer_guid`
             LEFT JOIN lite_b2b.status_setting c ON a.rejected_remark = c.code AND c.type = 'reject_po' 
-            LEFT JOIN b2b_summary.pomain d
-            ON a.refno = d.refno
-            AND a.customer_guid = d.customer_guid
             WHERE a.customer_guid = '$customer_guid' 
             AND a.loc_group IN ($loc)
             AND a.in_kind = 0
+            $module_code_in
             $status_in 
             $doc_daterange_in
             $exp_daterange_in 
             $ref_no_in
             $period_code_in
-            LIMIT 10
             ";
             //AND a.loc_group IN ($loc) -- up to production need change this
 
@@ -266,17 +260,17 @@ class b2b_po extends CI_Controller
                     $tab = array();
                     
                     $tab["refno"] = '<span style="display:flex;">' . $row->refno . '<i data-toggle="tooltip" data-placement="top" title="Click to preview item details" class="fa fa-info-circle" style="padding-top:5px;padding-left:10px;cursor: pointer;"  id="preview_po_item_line" refno=' . $row->refno . '></i></span>';
-                    $tab["grn_refno"] = '<a href="'. base_url() .'index.php/panda_gr/' . $module . '?trans=' . $row->grn_refno . '&loc=' . $_SESSION['po_loc'] . '&fmodule=1">' . $row->grn_refno . '</a>';
-                    $tab["outlet"] = $row->outlet;
+                    $tab["grn_refno"] = '<a href="'. base_url() .'index.php/b2b_gr/' . $module . '?trans=' . $row->grn_refno . '&loc=' . $_SESSION['po_loc'] . '&fmodule=1">' . $row->grn_refno . '</a>';
+                    $tab["loc_group"] = $row->loc_group;
                     $tab["supplier_code"] = $row->supplier_code;
                     $tab["supplier_name"] = $row->supplier_name;
-                    $tab["po_date"] = $row->po_date;
+                    $tab["podate"] = $row->podate;
                     $tab["delivery_date"] = $row->delivery_date;
                     $tab["expiry_date"] = $row->expiry_date;
                     $tab['amount'] = "<span class='pull-right'>" . number_format($row->amount, 2) . "</span>";
                     $tab['tax'] = "<span class='pull-right'>" . number_format($row->tax, 2) . "</span>";
                     $tab['total_include_tax'] = "<span class='pull-right'>" . number_format($row->total_include_tax, 2) . "</span>";
-                    $tab["status"] = ucfirst($row->status);
+                    $tab["status"] = $row->status;
                     $tab["rejected_remark"] = $row->rejected_remark;
 
                     if (in_array('HFSP', $_SESSION['module_code']) && $this->session->userdata('customer_guid') != '8D5B38E931FA11E79E7E33210BD612D3') {
@@ -353,6 +347,7 @@ class b2b_po extends CI_Controller
                 , now()
                 ");
                 
+                $this->db->query("UPDATE b2b_summary.pomain set status = 'viewed' where customer_guid ='$customer_guid' and refno = '$refno' and status = '' ");
                 $this->db->query("UPDATE b2b_summary.pomain_info set status = 'viewed' where customer_guid ='$customer_guid' and refno = '$refno' and status = '' ");
 
             
@@ -378,7 +373,7 @@ class b2b_po extends CI_Controller
             $check_status = $this->db->query("SELECT refno, if(status = '', 'Pending', status) as status from b2b_summary.pomain_info where refno = '$refno' and customer_guid = '".$_SESSION['customer_guid']."'");
 
             // $set_code = $this->db->query("SELECT code,reason from  set_setting where module_name = 'PO' order by reason asc");
-            $set_code = $this->db->query("SELECT code,portal_description as reason from status_setting where type = 'reject_po' AND isactive = 1 order by portal_description asc");
+            $set_code = $this->db->query("SELECT code,portal_description as reason from status_setting where type = 'reject_po' AND isactive = 1 order by sort asc");
             $set_admin_code = $this->db->query("SELECT code,reason from  set_setting where module_name = 'ADMIN' order by reason asc");
 
             $subscribe_edi = $this->db->query("SELECT b.subscribe_edi
@@ -388,7 +383,7 @@ class b2b_po extends CI_Controller
             WHERE a.supplier_group_name = '$check_scode'
             GROUP BY a.supplier_group_name")->row('subscribe_edi');
 
-            if ($check_status->row('status') == 'Pending' || $check_status->row('status') == 'viewed' || $check_status->row('status') == 'printed') {
+            if ($check_status->row('status') == 'Pending' || $check_status->row('status') == 'viewed' || $check_status->row('status') == 'printed' || $check_status->row('status') == 'extended') {
 
                 if (!in_array('BAPO', $_SESSION['module_code']) || in_array('VEL', $_SESSION['module_code']) && $subscribe_edi == '1' ) {
                     $show_action_button = '1';
@@ -401,7 +396,7 @@ class b2b_po extends CI_Controller
                 //echo $check_status->row('status'); echo  $show_action_button; die;
             };
 
-            if ($check_status->row('status') == 'Pending' || $check_status->row('status') == 'viewed' || $check_status->row('status') == 'printed') {
+            if ($check_status->row('status') == 'Pending' || $check_status->row('status') == 'viewed' || $check_status->row('status') == 'printed' || $check_status->row('status') == 'extended') {
 
                 if (in_array('!RPO', $_SESSION['module_code'])|| in_array('VEL', $_SESSION['module_code']) && $subscribe_edi == '1') {
                     $show_action_button2 = '0';
@@ -440,10 +435,22 @@ class b2b_po extends CI_Controller
                 $hide_url = '';
             }
 
+            $hide_report_toolbar = 0;
+            if(!in_array($check_status->row('status'), ['Accepted','gr_completed'])){
+                $get_current_settings = $this->db->query("SELECT * FROM lite_b2b.acc_settings WHERE customer_guid = '$customer_guid'");
+
+                // $check_movement = $this->db->query("SELECT COUNT(*) AS `count` FROM lite_b2b.supplier_movement WHERE `value` = '$refno' and customer_guid = '".$customer_guid."' and action = 'accepted_po'")->row('count');
+
+                if($get_current_settings->row('supplier_mandatory_to_accept_po') == 1){
+                    $hide_report_toolbar = 1;
+                }
+
+            }
+
             $data = array(
-                'filename' => $filename,
-                'file_headers' => $file_headers,
-                'virtual_path' => $virtual_path,
+                'filename' => isset($filename) ? $filename : '',
+                'file_headers' => isset($file_headers) ? $file_headers : array(),
+                'virtual_path' => isset($virtual_path) ? $virtual_path : '',
                 'title' => 'Purchase Order',
                 'check_status' => $check_status,
                 'set_code' => $set_code,
@@ -452,7 +459,8 @@ class b2b_po extends CI_Controller
                 'show_action_button' => $show_action_button,
                 'show_action_button2' => $show_action_button2,
                 'hide_url' => $hide_url,
-                'request_link' => site_url('B2b_po/po_report?refno='.$refno),
+                'hide_report_toolbar' => $hide_report_toolbar,
+                'request_link' => site_url('B2b_po/po_report?refno='.$refno), //site_url('B2b_po/po_report?refno='.$refno)
             );
 
             $data_footer = array(
@@ -475,89 +483,84 @@ class b2b_po extends CI_Controller
     {
         if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != ''   && $_SESSION['user_logs'] == $this->panda->validate_login())
         {   
-            $this->panda->get_uri();
+            //$this->panda->get_uri();
             $refno = $_REQUEST['refno'];
             $loc = $_REQUEST['loc'];
-            $check_url = $this->db->query("SELECT rest_url from acc where acc_guid = '".$_SESSION['customer_guid']."'")->row('rest_url');
-            $to_shoot_url = $check_url."/pochild?table=pochild"."&refno=".$refno;
+            $customer_guid = $_SESSION['customer_guid'];
 
-            $ch = curl_init($to_shoot_url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-            $response = curl_exec($ch);
+            $get_po_child_data = $this->db->query("SELECT a.`po_json_info`
+            FROM b2b_summary.`pomain_info` AS a
+            WHERE a.`refno` = '$refno'
+            AND a.`customer_guid`='$customer_guid'")->row('po_json_info');
+            //$check_url = $this->db->query("SELECT rest_url from acc where acc_guid = '".$_SESSION['customer_guid']."'")->row('rest_url');
+            // $to_shoot_url = $check_url."/pochild?table=pochild"."&refno=".$refno;
 
-                if($response !== false) 
+            // $ch = curl_init($to_shoot_url);
+            // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            // curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+            // $response = curl_exec($ch);
+ 
+            if (count(json_decode($get_po_child_data, true)['pochild']) > 0) 
+            {
+                foreach(json_decode($get_po_child_data, true)['pochild'] as $json) 
                 {
-                    $get_child_detail = json_decode(file_get_contents($to_shoot_url), true);
-                
-                    foreach($get_child_detail['pochild'][0] AS $key => $value) 
-                    {
-                        $headers = array(
-                            'description',
-                            'qty',          
-                            'netunitprice',
-                            'gst_tax_code',
-                            'gst_tax_rate',
-                            'gst_tax_amount',
-                            'sname',
-                            'issuedby',
-                        );  
+                    $headers = array(
+                        'description',
+                        'qty',          
+                        'netunitprice',
+                        'gst_tax_code',
+                        'gst_tax_rate',
+                        'gst_tax_amount',
+                        'sname',
+                        'issuedby',
+                    );  
     
-                        $headers[] = $key;
-                    }
-
-                    foreach ($get_child_detail['pochild'] as $child) 
-                    {
-                        $data[] = array(
-                            // 'refno' => $child['refno'],
-                            // 'podate' => $child['podate'],
-                            // 'deliverdate' => $child['deliverdate'],
-                            // 'itemcode' => $child['itemcode'],                        
-                            'description' => $child['description'],
-                            // 'barcode' => $child['barcode'],
-                            // 'articleno' => $child['articleno'],
-                            'qty' => $child['qty'],
-                            // 'um' => $child['um'],                            
-                            'netunitprice' => $child['netunitprice'],
-                            
-                            'gst_tax_code' => $child['gst_tax_code'],
-                            'gst_tax_rate' => $child['gst_tax_rate'],
-                            'gst_tax_amount' => $child['gst_tax_amount'],
-                            // 'price_include_tax' => $child['price_include_tax'],
-                            //'totalprice_include_tax' => $child['totalprice_include_tax'],
-
-                            //'location' => $child['location'],
-                            //'scode' => $child['scode'],
-                            'sname' => $child['sname'],
-                            //'line' => $child['line'],
-                            //'expiry_date' => $child['expiry_date'],                            
-                            'issuedby' => $child['issuedby'],
-                        );                                    
-                    }
-            
-                        header('Pragma: public');
-                        header('Expires: 0');
-                        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-                        header('Cache-Control: private', false);            
-                        header("Content-type: application/csv");
-                        header("Content-Disposition: attachment; filename=\"".$refno."".".csv\"");
-                        header("Pragma: no-cache");
-                        ob_clean();
-                        
-                        $handle = fopen('php://output', 'w');
-                        fputcsv($handle, $headers);
-                        foreach ($data as $data) 
-                        {
-                            fputcsv($handle, $data);
-                        }
-                            fclose($handle);
-                        exit;
-                }   
-                else
-                {                     
-                    $this->session->set_flashdata("noconnection", '<div class="alert alert-warning fade in">Error Connecting Client Server. </div>');
-                    redirect('b2b_po/po_child?trans='.$refno.'&loc='.$loc.'');
+                    $headers[] = isset($key) ? $key : '';
                 }
+
+                foreach(json_decode($get_po_child_data, true)['pomain'] as $main) 
+                {
+                    $sname = $main['SName'];
+                    $issuedby = $main['IssuedBy'];                              
+                }
+
+                foreach(json_decode($get_po_child_data, true)['pochild'] as $child) 
+                {
+                    $data[] = array(                        
+                        'description' => $child['Description'],
+                        'qty' => $child['Qty'],                         
+                        'netunitprice' => round($child['NetUnitPrice'],4),
+                        'gst_tax_code' => $child['gst_tax_code'],
+                        'gst_tax_rate' => $child['gst_tax_rate'],
+                        'gst_tax_amount' => $child['gst_tax_amount'],
+                        'sname' => $sname,
+                        'issuedby' => $issuedby,
+                    );                                    
+                }
+
+                header('Pragma: public');
+                header('Expires: 0');
+                header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+                header('Cache-Control: private', false);            
+                header("Content-type: application/csv");
+                header("Content-Disposition: attachment; filename=\"".$refno."".".csv\"");
+                header("Pragma: no-cache");
+                ob_clean();
+                
+                $handle = fopen('php://output', 'w');
+                fputcsv($handle, $headers);
+                foreach ($data as $data) 
+                {
+                    fputcsv($handle, $data);
+                }
+                    fclose($handle);
+                exit;
+            }   
+            else
+            {                     
+                $this->session->set_flashdata("noconnection", '<div class="alert alert-warning fade in">Error Connecting Client Server. </div>');
+                    redirect('b2b_po/po_child?trans='.$refno.'&loc='.$loc.'');
+            }
         }
         else
         {
@@ -908,6 +911,31 @@ class b2b_po extends CI_Controller
         }
     }
 
+    public function bulk_print_check_status()
+    {
+        $refno = $this->input->post('list_id');
+        $customer_guid = $_SESSION['customer_guid'];
+
+        $get_current_settings = $this->db->query("SELECT * FROM lite_b2b.acc_settings WHERE customer_guid = '$customer_guid'");
+
+        foreach($refno as $row)
+        {
+            $check_status = $this->db->query("SELECT refno, if(status = '', 'Pending', status) as status from b2b_summary.pomain_info where refno = '$row' and customer_guid = '".$customer_guid."'");
+
+            if(!in_array($check_status->row('status'), ['Accepted','gr_completed'])){
+
+                // $check_movement = $this->db->query("SELECT COUNT(*) AS `count` FROM lite_b2b.supplier_movement WHERE `value` = '$row' and customer_guid = '".$customer_guid."' and action = 'accepted_po'")->row('count');
+
+                if($get_current_settings->row('supplier_mandatory_to_accept_po') == 1){
+                    echo 0;
+                    die;
+                }
+            }
+        }
+
+        echo 1;
+    }
+
     public function bulk_accept()
     {
         $refno = $this->input->post('list_id');
@@ -973,11 +1001,74 @@ class b2b_po extends CI_Controller
 
     public function po_report()
     {
+        $get_status = $this->db->query("SELECT `status` FROM lite_b2b.jasper_server WHERE isactive = '1'")->row('status');
+
+        if($get_status == '0')
+        {
+            print_r('Report Under Maintenance.'); 
+            die;
+        }
+        
+        $user_guid = $_SESSION['user_guid'];
         $refno = $_REQUEST['refno'];
         $customer_guid = $_SESSION['customer_guid'];
         $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
+        $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
+        $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
 
-        $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PO/main_jrxml.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // po
+        if($cloud_directory == null || $cloud_directory == ''){
+            $cloud_directory = '/media/b2b-pdf/data_conversion/';
+        }
+
+        if($fileserver_url == null || $fileserver_url == ''){
+            $fileserver_url = 'https://file.xbridge.my/';
+        }
+
+        $cloud_directory = $cloud_directory . $customer_guid . '/PO/';
+
+        // check if pdf file already exist
+        if (file_exists($cloud_directory.$refno.'.pdf') && (filesize($cloud_directory.$refno.'.pdf') / 1024 > 2)) {
+
+            $curl = curl_init();
+
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $fileserver_url. '/b2b-pdf/data_conversion/' . $customer_guid . '/PO/' . $refno.'.pdf',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                    'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+                ),
+            ));
+                
+            $response = curl_exec($curl);
+
+            curl_close($curl); 
+
+            header('Content-type:application/pdf');
+            header('Content-Disposition: inline; filename='.$refno.'.pdf');
+
+            echo $response; die;
+        }
+
+        if($customer_guid == '599348EDCB2F11EA9A81000C29C6CEB2')
+        {
+            $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PO/main_jrxml_1.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // po
+
+            // echo $url; die;
+        }
+        else
+        {
+            $url = $this->jasper_ip . "/jasperserver/rest_v2/reports/reports/PandaReports/Backend_PO/main_jrxml.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // po
+            // echo $url; die;
+        }
+
         //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/gr_supplier_copy.pdf?refno=BLPGR22030862"; // grn
         //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_GRN/GRDA.pdf?refno=SGPGR22040255"; // grda
         //$url = "http://127.0.0.1:59090/jasperserver/rest_v2/reports/reports/PandaReports/Backend_Promotion/promo_claim_inv.pdf?refno=BT1PCI19090033"; // PCI
@@ -1012,6 +1103,36 @@ class b2b_po extends CI_Controller
         ));
             
         $response = curl_exec($curl);
+        $httpcode = curl_getinfo($curl,CURLINFO_HTTP_CODE);
+
+        if($httpcode < '200' || $httpcode > '200')
+        {
+            print_r($httpcode . ' : ' . curl_error($curl)); echo '<br>';
+            print_r('Failed to load PDF Report. Please refresh the page or contact our support.'); 
+            die;
+        }
+
+        // check pdf file directory
+        if (!file_exists($cloud_directory)) {
+            mkdir($cloud_directory, 0777, true);
+        }
+
+        // download pdf file into the cloud directory
+        file_put_contents($cloud_directory.$refno.'.pdf', $response);
+
+        if(file_exists($cloud_directory.$refno.'.pdf')){
+            
+            $update_data = array(
+                'exported_by'       => 'trigger_button',
+                'exported'          => 1,
+                'exported_datetime' => $this->db->query("SELECT NOW() AS current_datetime")->row('current_datetime'),
+            );
+
+            $this->db->where('refno', $refno);
+            $this->db->where('customer_guid', $customer_guid);
+            $this->db->update('b2b_summary.doc_export', $update_data);
+
+        }
 
         header('Content-type:application/pdf');
         header('Content-Disposition: inline; filename='.$filename.'.pdf');

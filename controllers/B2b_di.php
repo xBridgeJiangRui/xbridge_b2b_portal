@@ -16,12 +16,12 @@ class b2b_di extends CI_Controller
         //load the department_model
         //$this->load->model('General_model');
         $this->load->model('Datatable_model');
-        $this->jasper_ip = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','jasper_invoice_ip','GDJIIP');
+        $this->jasper_ip = $this->file_config_b2b->file_path_name($this->session->userdata('customer_guid'),'web','general_doc','jasper_invoice_ip','GDJIIP');
     }
 
     public function index()
     {
-        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN')
+        if($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login())
         {   
             //print_r($_SESSION['from_other']); die;
             $setsession = array(
@@ -64,7 +64,7 @@ class b2b_di extends CI_Controller
 
     public function di_list()
     {
-        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login() && $_SESSION['user_group_name'] == 'SUPER_ADMIN') {
+        if ($this->session->userdata('loginuser') == true && $this->session->userdata('userid') != '' && $_SESSION['user_logs'] == $this->panda->validate_login()) {
             $check_loc = $_SESSION['di_loc'];
             
             $hq_branch_code = $this->db->query("SELECT branch_code FROM acc_branch WHERE is_hq = '1'")->result();
@@ -119,7 +119,7 @@ class b2b_di extends CI_Controller
             if (in_array($_SESSION['di_loc'], $hq_branch_code_array)) {
                 $loc = $query_loc;
             } else {
-                $loc = "'" . $_SESSION['dii_loc'] . "'";
+                $loc = "'" . $_SESSION['di_loc'] . "'";
             }
 
             if (in_array('IAVA', $_SESSION['module_code'])) {
@@ -174,7 +174,7 @@ class b2b_di extends CI_Controller
             a.docdate,
             IF(a.status = '', 'NEW', a.status) AS status
             FROM
-            b2b_summary.discheme_taxinv_info AS a FORCE INDEX (customer_guid)
+            b2b_summary.discheme_taxinv_info AS a
             LEFT JOIN b2b_summary.discheme_taxinv AS b
             ON a.inv_refno = b.inv_refno
             AND a.customer_guid = b.customer_guid
@@ -195,11 +195,11 @@ class b2b_di extends CI_Controller
             a.supplier_name,
             a.loc_group,
             a.docdate,
-            CAST(JSON_UNQUOTE(JSON_EXTRACT(a.`di_json_info`,'$.discheme_taxinv[0].datedue')) AS DATE)AS datedue,
-            ROUND(JSON_UNQUOTE(JSON_EXTRACT(a.`di_json_info`,'$.discheme_taxinv[0].total_net')), 2 )AS total_net,
+            a.datedue,
+            a.total_net,
             IF(a.status = '', 'NEW', a.status) AS status
             FROM
-            b2b_summary.discheme_taxinv_info AS a FORCE INDEX (customer_guid)
+            b2b_summary.discheme_taxinv_info AS a
             LEFT JOIN b2b_summary.discheme_taxinv AS b
             ON a.inv_refno = b.inv_refno
             AND a.customer_guid = b.customer_guid
@@ -331,14 +331,56 @@ class b2b_di extends CI_Controller
 
     public function di_report()
     {
-        $refno = $_REQUEST['refno'];
+        $inv_refno = $_REQUEST['refno'];
         $customer_guid = $_SESSION['customer_guid'];
         $mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '';
+        $cloud_directory = $this->file_config_b2b->file_path_name($customer_guid,'web','general_doc','data_conversion_directory','DCD');
+        $fileserver_url = $this->file_config_b2b->file_path_name($customer_guid,'web','file_server','main_path','FILESERVER');
+
+        if($cloud_directory == null || $cloud_directory == ''){
+            $cloud_directory = '/media/b2b-pdf/data_conversion/';
+        }
+
+        if($fileserver_url == null || $fileserver_url == ''){
+            $fileserver_url = 'https://file.xbridge.my/';
+        }
+
+        $cloud_directory = $cloud_directory . $customer_guid . '/DI/';
+
+        // check if pdf file already exist
+        if (file_exists($cloud_directory.$inv_refno.'.pdf') && (filesize($cloud_directory.$inv_refno.'.pdf') / 1024 > 2)) {
+
+            $curl = curl_init();
+
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $fileserver_url. '/b2b-pdf/data_conversion/' . $customer_guid . '/DI/' . $inv_refno.'.pdf',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: Basic cGFuZGFfYjJiOmIyYkBhZG5hcA==',
+                    'Cookie: userLocale=en_US; JSESSIONID=5221928B4926B138CB796C763F550CB4'
+                ),
+            ));
+                
+            $response = curl_exec($curl);
+
+            curl_close($curl); 
+
+            header('Content-type:application/pdf');
+            header('Content-Disposition: inline; filename='.$inv_refno.'.pdf');
+
+            echo $response; die;
+        }
+
+        $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_DIncentives/display_incentive_report.pdf?refno=".$inv_refno."&customer_guid=".$customer_guid."&mode=".$mode; // DI
         
-        $url = $this->jasper_ip ."/jasperserver/rest_v2/reports/reports/PandaReports/Backend_DIncentives/display_incentive_report.pdf?refno=".$refno."&customer_guid=".$customer_guid."&mode=".$mode; // DI
-        //print_r($url); die;
-        
-        $check_code = $this->db->query("SELECT a.supplier_code from b2b_summary.promo_taxinv_info a where a.inv_refno = '$refno' and a.customer_guid = '" . $_SESSION['customer_guid'] . "' ")->row('supplier_code');
+        $check_code = $this->db->query("SELECT a.supplier_code from b2b_summary.promo_taxinv_info a where a.inv_refno = '$inv_refno' and a.customer_guid = '" . $_SESSION['customer_guid'] . "' ")->row('supplier_code');
 
         $check_code = str_replace("/", "+-+", $check_code);
 
@@ -346,7 +388,7 @@ class b2b_di extends CI_Controller
         $type = $parameter->row('type');
         $code = $check_code;
 
-        $filename = $this->db->query("SELECT REPLACE(REPLACE(REPLACE(filename_format, 'type', '$type'), 'code', '$code'), 'refno' , '$refno') AS query FROM menu where module_link = 'panda_di'")->row('query');
+        $filename = $this->db->query("SELECT REPLACE(REPLACE(REPLACE(filename_format, 'type', '$type'), 'code', '$code'), 'refno' , '$inv_refno') AS query FROM menu where module_link = 'panda_di'")->row('query');
 
         $curl = curl_init();
 
@@ -367,6 +409,28 @@ class b2b_di extends CI_Controller
         ));
             
         $response = curl_exec($curl);
+
+        // check pdf file directory
+        if (!file_exists($cloud_directory)) {
+            mkdir($cloud_directory, 0777, true);
+        }
+
+        // download pdf file into the cloud directory
+        file_put_contents($cloud_directory.$inv_refno.'.pdf', $response);
+
+        if(file_exists($cloud_directory.$inv_refno.'.pdf')){
+            
+            $update_data = array(
+                'exported_by'       => 'trigger_button',
+                'exported'          => 1,
+                'exported_datetime' => $this->db->query("SELECT NOW() AS current_datetime")->row('current_datetime'),
+            );
+
+            $this->db->where('refno', $inv_refno);
+            $this->db->where('customer_guid', $customer_guid);
+            $this->db->update('b2b_summary.doc_export', $update_data);
+
+        }
 
         header('Content-type:application/pdf');
         header('Content-Disposition: inline; filename='.$filename.'.pdf');

@@ -46,7 +46,20 @@
           </div>
         </div>
       <div class="box-body">
-        <div class="col-md-12">
+        <!-- <div class="col-md-12"> -->
+        <?php if($view_json == '1')
+        {
+          ?>
+          <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
+            <div id="accconceptCheck">
+              <embed id="embed" height="750px" width="100%" src="<?= $request_link_grda; ?>"></embed>
+            </div>
+          </div>
+          <?php
+        }
+        else
+        {
+          ?>
                 <div class="col-md-12"  style="overflow-x:auto;overflow-y:auto"> 
 
                   <?php 
@@ -71,10 +84,11 @@
 
                   <?php } ?>
 
-
-                    
                 </div>
-        </div>
+            <?php
+        }
+        ?>
+        <!-- </div> -->
       </div>
     </div>
 </div>

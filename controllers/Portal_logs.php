@@ -375,9 +375,9 @@ class Portal_logs extends CI_Controller {
         }
         else if($replace_customer_guid == '1')
         {
-            $current_set_variable = ['@customer_guid'];
+            $current_set_variable = ['@customer_guid','@db_consignment'];
         
-            $replace_set_variable = ["'$customer_guid'"];
+            $replace_set_variable = ["'$customer_guid'",$db_consignment];
             //print_r($replace_set_variable); die;
             $sql = str_replace($current_set_variable, $replace_set_variable, $get_table_sql);
         }
@@ -479,6 +479,8 @@ class Portal_logs extends CI_Controller {
             $sql = str_replace($current_set_variable, $replace_set_variable, $get_table_sql);
             // echo $sql; die;
         }
+
+        // $sql = "SELECT s.`Code`, s.`AccountCode`, IF(ss.`supplier_name` IS NOT NULL, ss.`supplier_name`, gr.`Name`) AS `Name`, IF(rn.`form_status` IS NULL, '', rn.`form_status`) AS 'Register Status', IF(LENGTH(rn.`memo_type`) > 30, tsg.`template_name`,rn.`memo_type`) AS 'Supply Type', gr.`status` AS `Status`, gr.`refno` AS RefNo, gr.`invno` AS InvNo, einv.`einvno` AS 'E-Inv No', gr.`dono` AS 'DONo', grda.`sup_cn_no` AS sup_cn_no, ecn.`ext_doc1` AS 'E-CN No', po_grn.`po_refno` AS PORefno, gr.`invrefno` AS PORefno, ROUND(gr.`total_include_tax`, 2) AS InvAmount_Vendor, ROUND(gr.`Total`, 2) AS Total, ROUND(grda.varianceamt, 2) AS VarianceAmt, gr.location AS Location, gr.grdate AS GRDate, gr.docdate AS DocDate, gr.postdatetime FROM b2b_summary.grmain gr LEFT JOIN b2b_summary.einv_main einv ON gr.`customer_guid` = einv.customer_guid AND gr.`RefNo` = einv.`refno` LEFT JOIN b2b_summary.`grmain_dncn` grda ON grda.`RefNo` = gr.`RefNo` AND grda.`customer_guid` = gr.`customer_guid` LEFT JOIN b2b_summary.ecn_main ecn ON grda.`customer_guid` = ecn.`customer_guid` AND grda.`refno` = ecn.`refno` LEFT JOIN b2b_summary.`po_grn_inv` po_grn ON gr.`RefNo` = po_grn.`gr_refno` AND gr.`customer_guid` = po_grn.`customer_guid` LEFT JOIN b2b_summary.`supcus` s ON gr.`Code` = s.`Code` AND s.`customer_guid` = gr.`customer_guid` LEFT JOIN lite_b2b.`set_supplier_group` ssg ON ssg.supplier_group_name = gr.code AND gr.`customer_guid` = ssg.`customer_guid` LEFT JOIN lite_b2b.`set_supplier` ss ON ss.supplier_guid = ssg.supplier_guid LEFT JOIN lite_b2b.`register_new` rn ON gr.`customer_guid` = rn.`customer_guid` AND ssg.supplier_guid = rn.supplier_guid LEFT JOIN `b2b_invoice`.`template_settings_general` tsg ON rn.`memo_type` = tsg.`template_guid` WHERE gr.`customer_guid` = 'C24990A0FDAE11ECA954A67EA5557007' AND LEFT(gr.`GRDate`, 7) = '2023-10' GROUP BY refno, sup_cn_no ORDER BY gr.`GRDate` DESC LIMIT 15000,15000";
 
         // echo $sql; die;
         if(isset($_GET['download_excel'])){

@@ -72,8 +72,8 @@
                         <th>Name</th>
                         <th>Supplier Name</th>
                         <th>Reg No</th>
+                        <th>Supply Type</th>
                         <th>Block</th>
-                        <th>Remark</th>
                         <th>Email</th>
                         <th>Invoice Number</th>
                         <!-- <th>Training Pax</th> -->
@@ -83,7 +83,7 @@
                         <th>Acceptance Form</th>
                         <th>Registration Form</th>
                         <th>Status</th> -->
-                        <th>Supply Type</th>
+                        <th>Remark</th>
                     </tr>
                     </thead>
                     <tbody>
